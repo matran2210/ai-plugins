@@ -118,6 +118,14 @@ GET /resources/upload/folder?type=COURSE&object_id=<course_id>
 
 Call này tự tạo folder nếu chưa có, nên gọi lại nhiều lần vô hại. Script cache lại vào khoá `_folder` của manifest để không gọi mỗi file.
 
+**Ảnh của đề bài câu hỏi dùng folder khác** — `upload-media.sh --folder-type QUESTION`:
+
+```text
+GET /resources/upload/folder?type=QUESTION
+```
+
+Lấy `.data.id` / `.data.name` y hệt như trên; call 2–4 không đổi. Cache ở khoá `_folder_question`, và mỗi dòng manifest ghi `folder_type` (`COURSE` / `QUESTION`) để `create-question.sh` kiểm ảnh đã lên đúng folder.
+
 #### 2. Metadata — `file_key` và presigned URL
 
 ```text

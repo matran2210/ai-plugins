@@ -79,6 +79,11 @@ ACTIVITY_DEFAULT_DURATION="${ACTIVITY_DEFAULT_DURATION:-30}"
 # Claude dùng khi viết HTML; để ở đây cho cùng một chỗ tra.
 IMAGE_DEFAULT_WIDTH="${IMAGE_DEFAULT_WIDTH:-200}"
 
+# Kích thước thẻ <img> của ảnh trong đề bài câu hỏi (question_content).
+# create-question.sh dùng — khác Document TEXT, ảnh câu hỏi có cả height.
+QUESTION_IMAGE_WIDTH="${QUESTION_IMAGE_WIDTH:-836}"
+QUESTION_IMAGE_HEIGHT="${QUESTION_IMAGE_HEIGHT:-428}"
+
 # ------------------------------------------------------------- Phân trang ----
 # start.sh chỉ quét trang ĐẦU để xác thực id. Khóa/topic nằm ngoài trang đầu sẽ
 # bị báo "không có trong danh sách" dù id đúng — tăng số này nếu gặp.

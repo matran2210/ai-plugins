@@ -288,6 +288,13 @@ scripts/course/upload-media.sh <course-slug>/assets/<file> \
 
 Script làm bốn call, mỗi call cần kết quả call trước: lấy folder khóa → xin `file_key` + presigned URL → `PUT` lên S3 → tạo resource. Chi tiết và bảng lỗi: **`references/upload-media.md`**.
 
+**Ảnh trong đề bài câu hỏi** (`q-…-img<NN>.*`, ảnh ngay dưới `Câu <n>.`) cũng upload ở đây, nhưng thêm `--folder-type QUESTION`. Chỉ khác call đầu: `GET /resources/upload/folder?type=QUESTION` thay cho folder của khóa; ba call sau giống hệt.
+
+```bash
+scripts/course/upload-media.sh <course-slug>/assets/q-<test>-c<NN>-img<NN>.png --folder-type QUESTION \
+                              --manifest <course-slug>/work/media-manifest.json --dry-run
+```
+
 Kết quả ghi vào `media-manifest.json`, khoá theo đường dẫn file. **Đây là bảng tra của bước 6:**
 
 | Media nằm dưới nhãn | Lấy trường | Nhét vào |
@@ -295,6 +302,7 @@ Kết quả ghi vào `media-manifest.json`, khoá theo đường dẫn file. **�
 | `Video:` trong một Tab | `quiz_id` | `{"type":"VIDEO","video_quiz_ids":["…"]}` trong plan |
 | nội dung một `Text:` | `resource_id` | `<img src="PRESIGN_URL" title="<display_name>" resource_id="…" width="200">` trong `content` của **chính document TEXT đó** |
 | `Resource:` của Activity | `resource_id` | `files: [{"resource_id":"…","type":"attached"}]` ở **cấp Activity** |
+| ngay dưới `Câu <n>.` (trước nhãn đầu tiên của câu) | — | đường dẫn file vào `images[]` của câu đó ở plan 7.1 — **script tự tra `resource_id`** |
 
 > 🚫 **Nhãn bọc ngoài quyết định, không phải loại file.** Chỉ file nằm dưới `Resource:` mới thành file đính kèm Activity. Ảnh nằm giữa nội dung một `Text:` là ảnh của bài viết đó — nhúng vào HTML của Document TEXT, **không** đẩy sang `files[]` của Activity. Chi tiết: *Media đi đâu* trong `references/lark-source.md`.
 
@@ -410,6 +418,7 @@ scripts/course/create-question.sh <course-slug>/work/questions-final.json \
 - `qtype` — **chép nguyên văn nhãn `Question Type:`**, bảy loại: `One Choice` · `Multiple Choice` · `True / False` · `Matching` · `Select Word` · `Fill Word` · `Drag & Drop`. Script tự quy ra enum API.
 - `layout` — **chép nguyên văn nhãn `Question Layout:`**: `One column` hoặc `Two column`. Script tự quy ra `HORIZONTAL` / `VERTICAL`.
 - `solution` — **tùy chọn**, lấy từ nhãn `Giải thích:`, bọc `<p>…</p>`. Không có nhãn thì bỏ hẳn trường.
+- `images` — **tùy chọn**, mảng đường dẫn ảnh của đề bài (`"<course-slug>/assets/q-section01-c01-img01.png"`), đúng thứ tự tài liệu. Script tra `resource_id` trong `<course-slug>/work/media-manifest.json` (cạnh file câu hỏi; khác chỗ thì `--manifest`) và nối `<img src="PRESIGN_URL" … resource_id="…" width="836" height="428">` vào **sau** đề bài (kích thước lấy từ `QUESTION_IMAGE_WIDTH` / `QUESTION_IMAGE_HEIGHT` trong `scripts/config.sh`). Ảnh chưa upload, bị bỏ qua, hoặc không upload bằng `--folder-type QUESTION` → script **dừng**. Không gõ `<img>` tay vào `content` — script chặn.
 
 > 🚫 **Không khai `display_type`, và không ghi `VERTICAL`/`HORIZONTAL` vào `layout`.** Script từ chối cả hai. Cặp giá trị này **ngược với trực giác** (`One column` → `HORIZONTAL`, `Two column` → `VERTICAL`) nên tự quy đổi là chỗ dễ chọn sai nhất — để script làm.
 

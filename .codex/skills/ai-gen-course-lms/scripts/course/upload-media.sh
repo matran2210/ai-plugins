@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
 # Upload một file media lên LMS, lấy resource_id và quiz_id.
 #
-#   upload-media.sh <file> [--display-name "<tên>"] [--manifest FILE] [--dry-run]
+#   upload-media.sh <file> [--display-name "<tên>"] [--folder-type COURSE|QUESTION]
+#                   [--manifest FILE] [--dry-run]
 #
 # Bốn bước, đúng thứ tự — bước sau cần kết quả của bước trước:
-#   1. GET  /resources/upload/folder?type=COURSE&object_id=<course_id>
+#   1. GET  /resources/upload/folder?type=COURSE&object_id=<course_id>   (mặc định)
+#      GET  /resources/upload/folder?type=QUESTION                       (--folder-type QUESTION)
 #             → parent_id = .data.id, location = .data.name + "/"
 #   2. GET  /resources/pre-upload/metadata?content_type&name&location&size&display_name
 #             → file_key = .data.file_key, upload_url = .data.upload_url
@@ -16,22 +18,29 @@
 #   VIDEO → quiz_id    → {type:"VIDEO", payload:{video_quiz_ids:["…"]}}
 #   ẢNH   → resource_id → <img src="PRESIGN_URL" title="…" resource_id="…" width="200">
 #
+# --folder-type QUESTION dành cho ảnh nằm trong đề bài một câu hỏi (dưới `Câu <n>.`).
+# Chỉ khác bước 1 — bước 2–4 giống hệt. create-question.sh chỉ nhận ảnh có
+# folder_type=QUESTION trong manifest.
+#
 # Kết quả ghi vào manifest (mặc định ./media-manifest.json), khoá theo đường dẫn
 # file truyền vào. File đã có trong manifest thì SKIP, chạy lại không upload lại.
-# Khoá "_folder" cache lại parent_id/location để không gọi lại bước 1 mỗi file.
+# Khoá "_folder" (COURSE) / "_folder_question" (QUESTION) cache lại parent_id/location
+# để không gọi lại bước 1 mỗi file.
 #
 # Cần UPBASE_COURSE_ID — chạy scripts/course/start.sh trước.
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 . "$HERE/../lib.sh"
 
-FILE="" DNAME="" MANIFEST="media-manifest.json" DRY=0
+FILE="" DNAME="" MANIFEST="media-manifest.json" DRY=0 FTYPE="COURSE"
 while [ $# -gt 0 ]; do
   case "$1" in
     --display-name) [ $# -ge 2 ] || die "--display-name cần một giá trị"
                 DNAME="$2"; shift 2 ;;
     --manifest) [ $# -ge 2 ] || die "--manifest cần một giá trị"
                 MANIFEST="$2"; shift 2 ;;
+    --folder-type) [ $# -ge 2 ] || die "--folder-type cần một giá trị"
+                FTYPE=$(printf '%s' "$2" | tr 'a-z' 'A-Z'); shift 2 ;;
     --dry-run) DRY=1; shift ;;
     -h|--help) awk 'NR>1 && /^#/ {sub(/^# ?/, ""); print; next} NR>1 {exit}' "$0"
                exit 0 ;;
@@ -41,6 +50,11 @@ while [ $# -gt 0 ]; do
 done
 
 need_deps
+case "$FTYPE" in
+  COURSE)   FKEYNAME="_folder" ;;
+  QUESTION) FKEYNAME="_folder_question" ;;
+  *) die "--folder-type chỉ nhận COURSE hoặc QUESTION, nhận: $FTYPE" ;;
+esac
 [ -n "$FILE" ] || die "thiếu <file> — dùng: $0 <file> [--manifest FILE]"
 [ -r "$FILE" ] || die "không đọc được file: $FILE"
 
@@ -94,10 +108,16 @@ fi
 COURSE="${UPBASE_COURSE_ID:-}"
 [ -n "$COURSE" ] || die "chưa có UPBASE_COURSE_ID — chạy scripts/course/start.sh trước"
 
+if [ "$FTYPE" = "QUESTION" ]; then
+  FOLDER_Q="type=QUESTION"
+else
+  FOLDER_Q="type=COURSE&object_id=$(urlenc "$COURSE")"
+fi
+
 if [ "$DRY" = "1" ]; then
   printf '[dry-run] %s\n' "$BASE" >&2
   printf '  size=%s content_type=%s display_name=%s\n' "$SIZE" "$CT" "$DNAME" >&2
-  printf '  1) GET  /resources/upload/folder?type=COURSE&object_id=%s\n' "$COURSE" >&2
+  printf '  1) GET  /resources/upload/folder?%s\n' "$FOLDER_Q" >&2
   printf '  2) GET  /resources/pre-upload/metadata?content_type=%s&name=%s&location=<từ b1>&size=%s&display_name=%s\n' \
     "$(urlenc "$CT")" "$(urlenc "$STEM")" "$SIZE" "$(urlenc "$DNAME")" >&2
   printf '  3) PUT  <upload_url từ b2>  (%s byte, không gửi Authorization)\n' "$SIZE" >&2
@@ -108,11 +128,12 @@ fi
 
 load_token
 
-# ---------- 1. Folder của khóa (get-or-create), cache trong manifest ----------
-PARENT=$(jq -r '._folder.parent_id // empty' "$MANIFEST")
-LOC=$(jq -r '._folder.location // empty' "$MANIFEST")
+# ---------- 1. Folder (get-or-create), cache trong manifest ----------
+# COURSE → folder của khóa; QUESTION → folder ảnh câu hỏi. Mỗi loại một khoá cache.
+PARENT=$(jq -r --arg f "$FKEYNAME" '.[$f].parent_id // empty' "$MANIFEST")
+LOC=$(jq -r --arg f "$FKEYNAME" '.[$f].location // empty' "$MANIFEST")
 if [ -z "$PARENT" ] || [ -z "$LOC" ]; then
-  api GET "/resources/upload/folder?type=COURSE&object_id=$(urlenc "$COURSE")"; check_auth
+  api GET "/resources/upload/folder?$FOLDER_Q"; check_auth
   [ "$API_HTTP" = "200" ] || die "bước 1 GET folder trả $API_HTTP: $(api_body | head -c 300)"
   PARENT=$(api_body | jq -r '.data.id // empty')
   fname=$(api_body | jq -r '.data.name // empty')
@@ -120,10 +141,10 @@ if [ -z "$PARENT" ] || [ -z "$LOC" ]; then
   [ -n "$fname" ] || die "bước 1 không có .data.name: $(api_body | head -c 300)"
   # .data.name không có dấu / cuối, mà location thì cần — thêm vào.
   LOC="${fname%/}/"
-  jq --arg p "$PARENT" --arg l "$LOC" \
-    '. + {_folder: {parent_id: $p, location: $l}}' "$MANIFEST" > "$MANIFEST.tmp" \
+  jq --arg f "$FKEYNAME" --arg p "$PARENT" --arg l "$LOC" \
+    '. + {($f): {parent_id: $p, location: $l}}' "$MANIFEST" > "$MANIFEST.tmp" \
     && mv "$MANIFEST.tmp" "$MANIFEST" || { rm -f "$MANIFEST.tmp"; die "không ghi được $MANIFEST"; }
-  printf '  folder: %s  (%s)\n' "$PARENT" "$LOC" >&2
+  printf '  folder %s: %s  (%s)\n' "$FTYPE" "$PARENT" "$LOC" >&2
 fi
 
 # ---------- 2. Metadata: file_key + presigned upload_url ----------
@@ -144,8 +165,8 @@ EXISTT=$(api_body | jq -r '.data.exist_type // "null"')
 # cố ý KHÔNG hỗ trợ: ghi nhận vào manifest rồi bỏ qua để người dùng tự upload,
 # và exit 0 để vòng lặp qua các file khác chạy tiếp.
 if [ "$PTYPE" != "SINGLE_PART" ]; then
-  jq --arg k "$FILE" --arg t "$PTYPE" --arg d "$DNAME" --arg sz "$SIZE" \
-    '. + {($k): {skipped: $t, display_name: $d, size: $sz,
+  jq --arg k "$FILE" --arg t "$PTYPE" --arg d "$DNAME" --arg sz "$SIZE" --arg ft "$FTYPE" \
+    '. + {($k): {skipped: $t, display_name: $d, size: $sz, folder_type: $ft,
                  resource_id: null, quiz_id: null}}' \
     "$MANIFEST" > "$MANIFEST.tmp" && mv "$MANIFEST.tmp" "$MANIFEST" \
     || { rm -f "$MANIFEST.tmp"; die "không ghi được $MANIFEST"; }
@@ -197,9 +218,10 @@ if [ "$STYPE" = "VIDEO" ] && [ -z "$QID" ]; then
 fi
 
 jq --arg k "$FILE" --arg r "$RID" --arg q "$QID" --arg d "$DNAME" \
-   --arg s "$STYPE" --arg fk "$FKEY" --arg sz "$SIZE" \
+   --arg s "$STYPE" --arg fk "$FKEY" --arg sz "$SIZE" --arg ft "$FTYPE" \
   '. + {($k): {resource_id: $r, quiz_id: (if $q == "" then null else $q end),
-               display_name: $d, suffix_type: $s, file_key: $fk, size: $sz}}' \
+               display_name: $d, suffix_type: $s, file_key: $fk, size: $sz,
+               folder_type: $ft}}' \
   "$MANIFEST" > "$MANIFEST.tmp" && mv "$MANIFEST.tmp" "$MANIFEST" \
   || { rm -f "$MANIFEST.tmp"; die "không ghi được $MANIFEST"; }
 

@@ -330,6 +330,7 @@ Cùng một block `file`/`image`, nằm dưới nhãn khác nhau thì thành th�
 | `Resource:` của một Activity | **đính kèm Activity** | `files: [{resource_id, type: "attached"}]` |
 | `Video:` bên trong một `Tab <n>:` | Document `VIDEO` của Tab đó | `{"type":"VIDEO","video_quiz_ids":["<quiz_id>"]}` |
 | nội dung của một `Text:` | **nằm trong chính Document TEXT đó** | thẻ `<img src="PRESIGN_URL" resource_id="…">` trong `content` |
+| ngay dưới heading `Câu <n>.`, trước nhãn đầu tiên của câu | **đề bài của câu hỏi đó** | upload `--folder-type QUESTION`, khai vào `images[]` của plan 7.1 — xem *Câu hỏi* |
 | không nhãn nào bọc | không tạo gì — ghi *Sai lệch* | — |
 
 > 🚫 **Chỉ `Resource:` mới sinh `files[]` của Activity.** Ảnh nằm giữa nội dung một `Text:` là **ảnh minh họa của bài viết đó**, nhúng vào HTML của Document TEXT — **không** đính kèm Activity, **không** nhân bản sang `files[]`. Muốn một file thành resource của Activity thì tài liệu phải ghi rõ nó dưới nhãn `Resource:`.
@@ -419,7 +420,16 @@ Khớp giá trị **bỏ hoa thường, khoảng trắng, dấu `/` và `-`**. G
 
 ## Câu hỏi
 
-Mỗi câu là một `heading4` dạng `Câu <n>. <đề bài>` — **dấu chấm, không phải dấu hai chấm**. Đề bài là phần sau dấu chấm; số `<n>` chỉ để đánh thứ tự và làm state key.
+Mỗi câu là một heading (`heading4` hoặc `heading5` — tài liệu dùng cả hai) dạng `Câu <n>. <đề bài>` — **dấu chấm, không phải dấu hai chấm**. Đề bài là phần sau dấu chấm; số `<n>` chỉ để đánh thứ tự và làm state key.
+
+**Ảnh của đề bài:** block `image` (hoặc `view` → `image`) nằm giữa heading `Câu <n>.` và nhãn đầu tiên của câu (`Đáp án đúng:`, `Cặp ghép:`, `Ô trống <k>:`…) là ảnh minh họa đề bài. Không có nhãn bọc riêng — vị trí đó là đủ. Tải về theo tên `q-<test>-c<NN>-img<NN>`, upload bằng `--folder-type QUESTION`, khai vào `images[]` của câu đó theo đúng thứ tự block. Ảnh nằm **sau** nhãn đầu tiên của câu (lẫn giữa các đáp án) thì không gắn — ghi *Sai lệch*.
+
+```text
+heading5  Câu 1. Theo bài học, vai trò quan trọng nhất của Booking…
+image     SYaVbb…   → q-section01-c01-img01.png   ┐ images[] của câu 1
+image     OktDbp…   → q-section01-c01-img02.png   ┘
+bullet    Đáp án đúng: …                           ← từ đây là nhãn của câu, hết vùng ảnh
+```
 
 Bên dưới mỗi `Câu <n>.` là các nhãn của chính câu đó, tới `Câu` kế tiếp thì đóng:
 
@@ -536,7 +546,7 @@ Duyệt block list, gom hai loại:
 | block có `file` | `file.token`, `file.name` | video, pdf, handout, tệp đính kèm |
 | block có `image` | `image.token` | ảnh |
 
-Gom xong thì **ghi luôn nhãn bọc ngoài của từng token** — `Resource:`, `Video:`, hay `Text:` nào. Đó là thứ quyết định file đó thành resource của Activity, Document VIDEO, hay thẻ `<img>` trong một Document TEXT; xem *Media đi đâu*. Tải về rồi mới đi tìm chỗ gắn là lúc đó không còn thông tin vị trí nữa.
+Gom xong thì **ghi luôn nhãn bọc ngoài của từng token** — `Resource:`, `Video:`, `Text:` nào, hay đề bài `Câu <n>.` nào. Đó là thứ quyết định file đó thành resource của Activity, Document VIDEO, hay thẻ `<img>` trong một Document TEXT; xem *Media đi đâu*. Tải về rồi mới đi tìm chỗ gắn là lúc đó không còn thông tin vị trí nữa.
 
 Block `view` bọc ngoài **không chứa token** — nó chỉ là vỏ hiển thị. Lấy token ở block con. Bốn video của tài liệu mẫu đều nằm theo dạng `view` → `file`.
 
@@ -569,12 +579,14 @@ Script tự tạo thư mục, tải có retry, chặn file rỗng, in số byte.
 <course-slug>/assets/s<SS>-<slug>.<ext>           media của Section
 <course-slug>/assets/s<SS>-a<AA>-handout-<slug>.pdf   file dưới `Resource:`, đính kèm Activity
 <course-slug>/assets/s<SS>-a<AA>-img<NN>.<ext>    ảnh nhúng trong Document TEXT của Activity
+<course-slug>/assets/q-<test>-c<NN>-img<NN>.<ext> ảnh trong đề bài câu hỏi
 ```
 
 - `<course-slug>` — tên khóa, không dấu, gạch nối: `planning-e2e`.
 - `<SS>`, `<AA>` — hai chữ số, lấy đúng số trong tài liệu: Activity `2.1` → `s02-a01`.
 - `<slug>` — tên Activity rút gọn, không dấu, gạch nối, tối đa ~50 ký tự.
 - `<NN>` — số thứ tự ảnh trong Activity, đếm từ 01.
+- `<test>` — bài test chứa câu hỏi: `final`, `mid`, `section<SS>` (Section Test), `s<SS>-a<AA>-t<TT>` (Quiz trong Tab). `c<NN>` là số `Câu <n>.`; `img<NN>` đếm từ 01 trong câu đó.
 
 Ví dụ thật từ tài liệu mẫu:
 

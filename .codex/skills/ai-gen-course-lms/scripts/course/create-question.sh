@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Tạo câu hỏi cho một bài test, từ file JSON đã soạn ở bước 7.
 #
-#   create-question.sh <questions.json> [--state FILE] [--dry-run]
+#   create-question.sh <questions.json> [--state FILE] [--manifest FILE] [--dry-run]
 #
 # Một file cho một bài test. Mỗi câu là một POST /question/single vào ngân hàng
 # câu hỏi của khóa (question_filter.course_id = khóa đang dựng).
@@ -12,6 +12,11 @@
 #   .blanks     Select Word · Fill Word · Drag & Drop  (+ .distractors cho Drag & Drop)
 # Hình dạng của từng loại: references/question-types.md
 #
+# Ảnh trong đề bài: .images = [đường dẫn file, …] theo thứ tự tài liệu. Script tra
+# resource_id trong manifest (mặc định media-manifest.json cạnh file câu hỏi) rồi
+# nối <img src="PRESIGN_URL" … resource_id="…"> vào SAU đề bài. Ảnh phải đã upload
+# bằng upload-media.sh --folder-type QUESTION — thiếu là dừng trước khi gọi API.
+#
 # Resume qua state file: câu đã tạo in SKIP, không tạo trùng.
 #
 # Đọc session do scripts/course/start.sh ghi. Phần bất biến của payload nằm ở
@@ -20,11 +25,13 @@
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 . "$HERE/../lib.sh"
 
-QFILE="" STATE="" DRY=0
+QFILE="" STATE="" MANIFEST="" DRY=0
 while [ $# -gt 0 ]; do
   case "$1" in
     --state) [ $# -ge 2 ] || die "--state cần một giá trị"
                 STATE="$2"; shift 2 ;;
+    --manifest) [ $# -ge 2 ] || die "--manifest cần một giá trị"
+                MANIFEST="$2"; shift 2 ;;
     --dry-run) DRY=1; shift ;;
     -h|--help) awk 'NR>1 && /^#/ {sub(/^# ?/, ""); print; next} NR>1 {exit}' "$0"
                exit 0 ;;
@@ -38,6 +45,7 @@ need_deps
 jq -e . "$QFILE" >/dev/null 2>&1 || die "$QFILE không phải JSON hợp lệ"
 STATE="${STATE:-$(dirname "$QFILE")/state.json}"
 [ -f "$STATE" ] || echo '{}' > "$STATE"
+MANIFEST="${MANIFEST:-$(dirname "$QFILE")/media-manifest.json}"
 
 TEST=$(jq -r '.test // empty' "$QFILE")
 [ -n "$TEST" ] || die "file thiếu .test — khóa để đặt state key, ví dụ \"final\", \"mid\", \"section:1\""
@@ -203,6 +211,41 @@ bad=$(jq -r "$JQ_LIB"'[ .questions[]
   | "câu \(.n)" ] | join("; ")' "$QFILE")
 [ -z "$bad" ] || die "có câu hỏi rỗng đề bài hoặc rỗng nội dung đáp án: $bad"
 
+# --- Ảnh trong đề bài -----------------------------------------------------------
+# Ảnh đi qua .images, không gõ <img> tay vào .content: script là chỗ duy nhất tra
+# resource_id và kiểm ảnh đã upload đúng folder QUESTION. Thiếu resource_id thì
+# câu hỏi vẫn tạo được (201) nhưng mất ảnh vĩnh viễn — không có endpoint sửa.
+bad=$(jq -r '[ .questions[]
+  | select((.content // "") | test("<img"; "i"))
+  | "câu \(.n)" ] | join("; ")' "$QFILE")
+[ -z "$bad" ] || die "đề bài có thẻ <img> gõ tay: $bad
+  Khai đường dẫn ảnh vào .images, script tự dựng thẻ <img>."
+
+bad=$(jq -r '[ .questions[]
+  | select(has("images") and ((.images | type) != "array"
+                              or (.images | any((type) != "string" or . == ""))))
+  | "câu \(.n)" ] | join("; ")' "$QFILE")
+[ -z "$bad" ] || die ".images phải là mảng đường dẫn file (chuỗi không rỗng): $bad"
+
+if jq -e '[.questions[] | (.images // [])[]] | length > 0' "$QFILE" >/dev/null; then
+  [ -f "$MANIFEST" ] || die "câu hỏi có .images nhưng không thấy manifest: $MANIFEST
+  Upload ảnh trước: scripts/course/upload-media.sh <ảnh> --folder-type QUESTION --manifest $MANIFEST"
+  jq -e . "$MANIFEST" >/dev/null 2>&1 || die "$MANIFEST không phải JSON hợp lệ"
+  bad=$(jq -r --slurpfile m "$MANIFEST" '[ .questions[] | .n as $n | (.images // [])[]
+    | . as $f | ($m[0][$f] // null) as $e
+    | if   $e == null                         then "câu \($n): \($f) chưa upload"
+      elif ($e.skipped // null) != null       then "câu \($n): \($f) bị bỏ qua lúc upload (\($e.skipped))"
+      elif (($e.resource_id // "") == "")     then "câu \($n): \($f) không có resource_id"
+      elif ($e.folder_type // "COURSE") != "QUESTION"
+                                              then "câu \($n): \($f) upload vào folder \($e.folder_type // "COURSE"), cần QUESTION"
+      else empty end ] | join("; ")' "$QFILE")
+  [ -z "$bad" ] || die "ảnh câu hỏi chưa sẵn sàng: $bad
+  Upload lại bằng: scripts/course/upload-media.sh <ảnh> --folder-type QUESTION --manifest $MANIFEST"
+  MAN_JSON=$(jq -c . "$MANIFEST")
+else
+  MAN_JSON='{}'
+fi
+
 # --- Ô trống: {{blank}} → thẻ span mang UUID v4 chữ thường -------------------
 # Backend đếm ô trống bằng regex khớp UUID v4 CHỮ THƯỜNG. id dạng "blank-1",
 # UUID chữ hoa, hay UUID không phải v4 đều không được đếm — và với DRAG_DROP,
@@ -252,6 +295,7 @@ if [ "$DRY" -eq 1 ]; then
                  else
                    "\((.answers | length)) đáp án, \((.answers | map(select(.is_correct)) | length)) đúng"
                  end )
+      + (if ((.images // []) | length) > 0 then " · \((.images | length)) ảnh" else "" end)
       + "\n      \(.content | gsub("<[^>]*>";"") | .[0:80])"' "$QFILE" >&2
   printf '\n=== DRY-RUN — CHƯA TẠO GÌ === (state: %s)\n' "$STATE" >&2
   exit 0
@@ -273,6 +317,12 @@ for ((i = 0; i < NQ; i++)); do
 
   raw=$(jq -r ".questions[$i].content" "$QFILE")
   content=$(expand_blanks "$raw") || exit 1
+  # Ảnh nối SAU đề bài, đúng thứ tự .images — cùng dạng thẻ với Document TEXT.
+  imgs=$(jq -r --argjson man "$MAN_JSON" --arg w "$QUESTION_IMAGE_WIDTH" --arg h "$QUESTION_IMAGE_HEIGHT" --argjson i "$i" '
+    [ (.questions[$i].images // [])[] | $man[.]
+      | "<img src=\"PRESIGN_URL\" title=\"\(.display_name | @html)\" resource_id=\"\(.resource_id)\" width=\"\($w)\" height=\"\($h)\">" ]
+    | join("")' "$QFILE")
+  content="$content$imgs"
 
   # answer_position:
   #   loại một nhóm (One/Multiple/True-False) — đánh từ 1 theo ĐÚNG thứ tự trong

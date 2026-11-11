@@ -115,6 +115,7 @@ Cột **Node** phải ghi rõ **chỗ gắn**, không chỉ tên Activity — đ
 | `Video:` trong Tab | `Activity 1.1 › Tab 1 › Video` |
 | nội dung một `Text:` | `Activity 1.1 › Tab 1 › Text 1 (ảnh nhúng)` |
 | `Resource:` của Activity | `Activity 1.1 › Resource (đính kèm)` |
+| ngay dưới `Câu <n>.` | `Section Test 1 › Câu 1 (ảnh đề bài)` |
 
 **Chỉ file dưới `Resource:` mới là file đính kèm Activity.** Ảnh nằm giữa nội dung một `Text:` thuộc chính Document TEXT đó — đừng liệt kê nó như resource của Activity.
 

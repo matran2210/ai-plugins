@@ -25,6 +25,23 @@ Bốn trường chung cho **mọi** loại:
 
 `solution` là trường **tùy chọn**, dùng được cho mọi loại — lấy từ nhãn `Giải thích:`, bọc `<p>…</p>`. Không có nhãn thì bỏ hẳn trường, script giữ `""` của `QUESTION_CFG`.
 
+`images` là trường **tùy chọn**, dùng được cho mọi loại — mảng đường dẫn ảnh của đề bài, đúng thứ tự block trong tài liệu:
+
+```json
+{ "n": 1, "content": "<p>Theo bài học, …?</p>",
+  "images": ["<course-slug>/assets/q-section01-c01-img01.png",
+             "<course-slug>/assets/q-section01-c01-img02.png"],
+  "qtype": "One Choice", "layout": "One column", "answers": [ … ] }
+```
+
+Script tra `resource_id` trong manifest rồi nối vào sau đề bài. Thẻ giống Document TEXT, chỉ khác kích thước: mặc định `width="836" height="428"` (`QUESTION_IMAGE_WIDTH` / `QUESTION_IMAGE_HEIGHT` trong `scripts/config.sh`):
+
+```html
+<p>Theo bài học, …?</p><img src="PRESIGN_URL" title="q-section01-c01-img01.png" resource_id="…" width="836" height="428">
+```
+
+> 🚫 **Không gõ `<img>` vào `content`.** Script chặn. Ảnh phải upload bằng `upload-media.sh --folder-type QUESTION` trước — manifest không có, bị bỏ qua, hoặc `folder_type` khác `QUESTION` thì script dừng trước khi gọi API. Câu hỏi tạo rồi không sửa được, mất ảnh là mất vĩnh viễn.
+
 ### `qtype` — chép nguyên văn, bảy nhãn
 
 | Nhãn Lark | enum API |
