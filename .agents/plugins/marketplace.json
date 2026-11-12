@@ -1,0 +1,20 @@
+{
+  "name": "lms-plugins",
+  "interface": {
+    "displayName": "LMS Plugins"
+  },
+  "plugins": [
+    {
+      "name": "course-builder",
+      "source": {
+        "source": "local",
+        "path": "./plugins/course-builder"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

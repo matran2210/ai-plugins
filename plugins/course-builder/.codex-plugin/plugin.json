@@ -1,0 +1,10 @@
+{
+  "name": "course-builder",
+  "version": "1.0.0",
+  "description": "Dựng khóa học UpBase LMS từ tài liệu thiết kế trên Lark: đọc tài liệu, tải media, xuất outline để duyệt, rồi gọi API tạo khóa.",
+  "author": {
+    "name": "Cuong"
+  },
+  "keywords": ["upbase", "lms", "lark", "course"],
+  "skills": "./skills/"
+}

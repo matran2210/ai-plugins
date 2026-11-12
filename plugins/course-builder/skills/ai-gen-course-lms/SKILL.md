@@ -64,7 +64,7 @@ Script thì nằm trong thư mục skill, là thư mục khác. **Mọi tài li�
 /đường/dẫn/tới/skill/ai-gen-course-lms/scripts/course/start.sh --course <id>
 ```
 
-**Việc đầu tiên của lượt**, trước cả bước 0: xác định đường dẫn thư mục skill và dùng lại nguyên văn cho mọi lệnh sau. Skill được cài qua plugin `course-builder`, nên thư mục này nằm trong cache plugin (dạng `~/.claude/plugins/cache/<marketplace>/course-builder/<version>/skills/ai-gen-course-lms/`) — lấy đúng đường dẫn ở dòng *Base directory for this skill* hiện ra khi skill được nạp, đừng đoán.
+**Việc đầu tiên của lượt**, trước cả bước 0: xác định đường dẫn thư mục skill và dùng lại nguyên văn cho mọi lệnh sau. Skill được cài qua plugin `course-builder`, nên thư mục này nằm trong cache plugin (dạng `~/.claude/plugins/cache/<marketplace>/course-builder/<version>/skills/ai-gen-course-lms/` trên Claude Code, `~/.codex/plugins/cache/<marketplace>/course-builder/<version>/skills/ai-gen-course-lms/` trên Codex) — lấy đúng đường dẫn ở dòng *Base directory for this skill* hiện ra khi skill được nạp, đừng đoán.
 
 > ⚠️ **Đừng đặt vào biến shell** kiểu `SKILL=$(...)`. Mỗi lệnh Bash là một shell riêng — biến không sống sang lệnh kế tiếp, và từ lệnh thứ hai trở đi đường dẫn sẽ thành `/scripts/…`.
 
@@ -72,23 +72,7 @@ Script thì nằm trong thư mục skill, là thư mục khác. **Mọi tài li�
 
 Không có link tài liệu thì dừng ở đây. Có rồi thì phải **đọc được** nó mới sang bước 1: chưa đọc được thì không đăng nhập OPS, không đọc `references/` khác, không soạn gì.
 
-### 0.0 App Lark đã khai chưa
-
-`.mcp.json` chỉ chứa `${LARK_APP_ID}` / `${LARK_APP_SECRET}`; giá trị thật nằm ở máy người dùng.
-
-```bash
-scripts/lark-setup.sh --check
-```
-
-Exit 0 → sang 0.1. Exit 1 (`THIẾU KHAI BÁO`) → nói một câu rằng hộp thoại đang mở, rồi chạy `scripts/lark-setup.sh --gui` với timeout **600000** ms.
-
-| Kết quả | Làm gì |
-|---|---|
-| `=== ĐÃ LƯU ===` | **kết thúc lượt**, bảo người dùng khởi động lại đúng host đang chạy skill — tiến trình MCP đang chạy vẫn giữ env cũ |
-| `đã hủy` | báo lại, **kết thúc lượt**, đừng mở lại hộp thoại |
-| máy không có GUI | nhắc người dùng tự chạy ở terminal của họ, kết thúc lượt |
-
-> ⚠️ **Chỉ gọi `--check` và `--gui`, không bao giờ gọi bản trần** — bản trần nhận App Secret qua stdin mà stdin lúc đó là stream bạn kiểm soát. **Không bao giờ nhận App ID/Secret qua khung chat.**
+Kết nối Lark (server MCP `lark`, `LARK_APP_ID` / `LARK_APP_SECRET`) do **người dùng tự cấu hình thủ công** theo `README.md`. Skill không kiểm tra, không khai hộ, không chạy `scripts/lark-setup.sh`. **Không bao giờ nhận App ID/Secret qua khung chat.**
 
 ### 0.1 → 0.4 Xác thực token
 
@@ -123,7 +107,7 @@ Cổng đóng **không đồng nghĩa thành công** — link hết hạn cũng 
 | Hiện tượng khác | Xử lý |
 |---|---|
 | browser báo lỗi `redirect_uri` | app chưa khai `http://localhost:3000/callback` → thêm tại `https://open.larksuite.com/app/<app_id>/safe` rồi làm lại |
-| `client_id` là chuỗi `${LARK_APP_ID}` (lỗi `20028`) | env chưa nạp — chạy lại 0.0 rồi **khởi động lại host** |
+| `client_id` là chuỗi `${LARK_APP_ID}` (lỗi `20028`) | env chưa nạp — nhắc người dùng tự khai `LARK_APP_ID` / `LARK_APP_SECRET` theo `README.md` rồi **khởi động lại host**, **kết thúc lượt** |
 | không có tool `mcp__lark__*` | server `lark` chưa cấu hình. Nhắc người dùng thêm qua `claude mcp`, **kết thúc lượt** |
 | không có `mcp__lark__drive_v1_media_batchGetTmpDownloadUrl` | thiếu tool tải media trong `-t` của `.mcp.json` → xử lý theo `references/lark-source.md` |
 

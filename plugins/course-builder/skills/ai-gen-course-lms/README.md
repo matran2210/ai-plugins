@@ -48,8 +48,7 @@ Hầu hết lệnh trong tài liệu này **không dành cho bạn**. Việc c�
 | duyệt `outline.md` | ✅ **bắt buộc** — không duyệt thì không tạo gì | ❌ không tự duyệt hộ |
 | `scripts/login.sh` | được, khi muốn tự đăng nhập | ❌ không bao giờ |
 | `scripts/login.sh --gui` | không cần | ✅ ở bước 4, **mỗi lượt** |
-| `scripts/lark-setup.sh` | được, khi muốn tự khai App ID/Secret | ❌ không bao giờ |
-| `scripts/lark-setup.sh --check` / `--gui` | không cần | ✅ ở bước 0 |
+| cấu hình kết nối Lark (`.mcp.json`, `scripts/lark-setup.sh`) | ✅ **tự làm thủ công**, xem [Cài đặt](#cài-đặt) | ❌ không bao giờ |
 | `scripts/media/download.sh` | chỉ khi gỡ lỗi | ✅ ở bước 2 |
 | `scripts/*/start.sh` | chỉ khi gỡ lỗi | ✅ |
 | `scripts/course/build-section.sh` | ⚠️ xem cảnh báo ở [Tham chiếu lệnh](#tham-chiếu-lệnh) | ✅ |
