@@ -5,6 +5,12 @@
 #
 # Một file cho một bài test. Mỗi câu là một POST /question/single vào ngân hàng
 # câu hỏi của khóa (question_filter.course_id = khóa đang dựng).
+# Mọi câu gắn thêm question_filter.chapter_id = SECTION_ID đọc từ state key
+# `section:N`. N lấy từ đâu tùy bài test:
+#   section:N, tab:N:A:T   N trong chính .test — cả file chung một Section,
+#                          câu hỏi KHÔNG khai .section.
+#   final, mid             N là .section của TỪNG câu — bắt buộc, chép từ cột
+#                          Section ở mục 5 của outline.md đã duyệt.
 #
 # Bảy loại câu hỏi, ba hình dạng plan khác nhau:
 #   .answers    One Choice · Multiple Choice · True / False
@@ -49,8 +55,37 @@ MANIFEST="${MANIFEST:-$(dirname "$QFILE")/media-manifest.json}"
 
 TEST=$(jq -r '.test // empty' "$QFILE")
 [ -n "$TEST" ] || die "file thiếu .test — khóa để đặt state key, ví dụ \"final\", \"mid\", \"section:1\""
+
 NQ=$(jq '.questions | length' "$QFILE")
 [ "$NQ" -gt 0 ] || die "file không có câu hỏi nào"
+
+# chapter_id: CHAP_MAP = {"<n>": SECTION_ID} cho từng câu. Section phải đã dựng
+# ở bước 6, cùng state file.
+SEC=""
+case "$TEST" in
+  final|mid)
+    bad=$(jq -r '[ .questions[]
+      | select((.section | type) != "number" or .section < 1 or .section != (.section | floor))
+      | "câu \(.n): section=\(.section // "thiếu")" ] | join("; ")' "$QFILE")
+    [ -z "$bad" ] || die "bài '$TEST' cần .section (số nguyên ≥ 1) ở từng câu: $bad
+  Chép từ cột Section ở mục 5 của outline.md đã duyệt — không phân tích lại ở bước này." ;;
+  section:*|tab:*)
+    SEC="${TEST#*:}"; SEC="${SEC%%:*}"
+    case "$SEC" in ''|*[!0-9]*) die ".test=\"$TEST\" — không đọc được số Section" ;; esac
+    bad=$(jq -r '[ .questions[] | select(has("section")) | "câu \(.n)" ] | join("; ")' "$QFILE")
+    [ -z "$bad" ] || die "bài '$TEST' khai .section ở câu: $bad
+  Chỉ final/mid mới khai .section từng câu — bài thuộc Section lấy N từ .test." ;;
+  *) die ".test=\"$TEST\" không nhận — chỉ nhận final, mid, section:<N>, tab:<N>:<A>:<T>" ;;
+esac
+CHAP_MAP=$(jq -c --slurpfile st "$STATE" --arg sec "${SEC:-}" '
+  [ .questions[] | {key: (.n | tostring),
+                    value: ($st[0]["section:\(if $sec != "" then $sec else .section end)"] // "")} ]
+  | from_entries' "$QFILE")
+bad=$(jq -r --argjson m "$CHAP_MAP" --arg sec "${SEC:-}" '[ .questions[]
+  | select($m[.n | tostring] == "")
+  | "câu \(.n) → section:\(if $sec != "" then $sec else .section end)" ] | join("; ")' "$QFILE")
+[ -z "$bad" ] || die "state $STATE thiếu SECTION_ID: $bad
+  Chạy build-section.sh cho Section đó trước, cùng --state."
 
 # --- Hàm dùng chung cho mọi khối jq bên dưới ---------------------------------
 # qt   chuẩn hóa qtype: nhận cả nguyên văn nhãn Lark lẫn enum API, hai dạng
@@ -280,7 +315,7 @@ expand_blanks() {
 
 info "Bài test '$TEST' — $NQ câu hỏi"
 if [ "$DRY" -eq 1 ]; then
-  jq -r "$JQ_LIB"'.questions[]
+  jq -r --argjson m "$CHAP_MAP" --arg sec "${SEC:-}" "$JQ_LIB"'.questions[]
     | (qenum) as $e
     | (.layout | ascii_downcase | gsub("[^a-z]";"")) as $l
     | "  câu \(.n) [\($e) · \(.layout) → \(if $l == "onecolumn" then "HORIZONTAL" else "VERTICAL" end)]"
@@ -296,6 +331,7 @@ if [ "$DRY" -eq 1 ]; then
                    "\((.answers | length)) đáp án, \((.answers | map(select(.is_correct)) | length)) đúng"
                  end )
       + (if ((.images // []) | length) > 0 then " · \((.images | length)) ảnh" else "" end)
+      + " · Section \(if $sec != "" then $sec else .section end) → chapter_id \($m[.n | tostring])"
       + "\n      \(.content | gsub("<[^>]*>";"") | .[0:80])"' "$QFILE" >&2
   printf '\n=== DRY-RUN — CHƯA TẠO GÌ === (state: %s)\n' "$STATE" >&2
   exit 0
@@ -341,7 +377,7 @@ for ((i = 0; i < NQ; i++)); do
        + {question_content: $content,
           qType: ($q | qenum),
           display_type: (if $l == "onecolumn" then "HORIZONTAL" else "VERTICAL" end),
-          question_filter: {course_id: $c}}
+          question_filter: {course_id: $c, chapter_id: $m[$q.n | tostring]}}
        + (if (($q.solution // "") != "") then {solution: $q.solution} else {} end)
        + (if $t == "matching" then
             {question_matchings: [ (($q.matchings // []) | to_entries[])
@@ -362,7 +398,7 @@ for ((i = 0; i < NQ; i++)); do
                   answer: .value.answer,
                   answer_position: (.key + 1)} ]}
           end)' \
-    --argjson cfg "$QUESTION_CFG" --arg c "$COURSE" --argjson i "$i" --arg content "$content" "$QFILE")
+    --argjson cfg "$QUESTION_CFG" --arg c "$COURSE" --argjson m "$CHAP_MAP" --argjson i "$i" --arg content "$content" "$QFILE")
 
   api POST "/question/single" "$payload"; check_auth
   case "$API_HTTP" in

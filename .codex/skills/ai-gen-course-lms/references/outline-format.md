@@ -138,15 +138,15 @@ Một khối `###` cho mỗi bài test tài liệu định nghĩa: `Quiz:` bên 
   · `Grading Preference: After all questions` → `AFTER_ALL_QUESTIONS` · `Attempt: 2` → `is_limited: true` + `limit_count: 2`
 - Câu hỏi: **3 câu** · điểm chia đều `33.33` mỗi câu (tổng 99.99)
 
-| # | Đề bài | Type | Layout | Đáp án |
-|---|---|---|---|---|
-| 1 | Market Research được định nghĩa như thế nào trong tài liệu? | One Choice → `ONE_CHOICE` | One column → `HORIZONTAL` | 1 đúng / 3 nhiễu |
-| 2 | Market Research đứng ở đâu trong quy trình Planning? | Multiple Choice → `MULTIPLE_CHOICE` | One column → `HORIZONTAL` | 2 đúng / 2 nhiễu |
-| 3 | Trong mô hình Market Research, cách phân chia Internal và External nào đúng? | True / False → `TRUE_FALSE` | Two column → `VERTICAL` | 1 đúng / 1 sai |
-| 4 | Ghép mỗi nguồn dữ liệu với nhóm Internal hay External | Matching → `MATCHING` | One column → `HORIZONTAL` | 4 cặp ghép |
-| 5 | Điền vào công thức quy mô thị trường | Select Word → `SELECT_WORD` | Two column → `VERTICAL` | 2 ô trống · ô 1: 1 đúng/2 nhiễu · ô 2: 1 đúng/1 nhiễu |
-| 6 | Tỷ lệ thâm nhập thị trường mục tiêu là bao nhiêu phần trăm | Fill Word → `FILL_WORD` | One column → `HORIZONTAL` | 1 ô trống · 2 cách viết được chấp nhận |
-| 7 | Sắp xếp đúng thứ tự bốn bước nghiên cứu thị trường | Drag & Drop → `DRAG_DROP` | One column → `HORIZONTAL` | 4 ô trống · 2 mảnh nhiễu chung |
+| # | Đề bài | Type | Layout | Đáp án | Section | Căn cứ |
+|---|---|---|---|---|---|---|
+| 1 | Market Research được định nghĩa như thế nào trong tài liệu? | One Choice → `ONE_CHOICE` | One column → `HORIZONTAL` | 1 đúng / 3 nhiễu | **1** — Giới thiệu Market Research | Activity 1.1 · LO con 1 |
+| 2 | Market Research đứng ở đâu trong quy trình Planning? | Multiple Choice → `MULTIPLE_CHOICE` | One column → `HORIZONTAL` | 2 đúng / 2 nhiễu | **1** — Giới thiệu Market Research | Activity 1.2 |
+| 3 | Trong mô hình Market Research, cách phân chia Internal và External nào đúng? | True / False → `TRUE_FALSE` | Two column → `VERTICAL` | 1 đúng / 1 sai | **2** — Nguồn dữ liệu | Activity 2.1 · LO con 1 |
+| 4 | Ghép mỗi nguồn dữ liệu với nhóm Internal hay External | Matching → `MATCHING` | One column → `HORIZONTAL` | 4 cặp ghép | **2** — Nguồn dữ liệu | Activity 2.1 |
+| 5 | Điền vào công thức quy mô thị trường | Select Word → `SELECT_WORD` | Two column → `VERTICAL` | 2 ô trống · ô 1: 1 đúng/2 nhiễu · ô 2: 1 đúng/1 nhiễu | **3** — Đo quy mô thị trường | Activity 3.2 |
+| 6 | Tỷ lệ thâm nhập thị trường mục tiêu là bao nhiêu phần trăm | Fill Word → `FILL_WORD` | One column → `HORIZONTAL` | 1 ô trống · 2 cách viết được chấp nhận | **3** — Đo quy mô thị trường | Activity 3.2 |
+| 7 | Sắp xếp đúng thứ tự bốn bước nghiên cứu thị trường | Drag & Drop → `DRAG_DROP` | One column → `HORIZONTAL` | 4 ô trống · 2 mảnh nhiễu chung | **chưa xác định** ⚠️ SL-18 | khớp cả Activity 1.2 và 3.1 |
 
 ### Bài test 2 — Section Test của Section 1
 - Tên: Bài kiểm tra Section 1 – Thiết lập gian hàng Shopee
@@ -161,6 +161,10 @@ Quy tắc của mục này:
 - **Bảng câu hỏi chỉ ghi đề bài và ĐẾM đáp án**, không chép nội dung đáp án và **tuyệt đối không ghi đáp án nào đúng**. Outline là file nằm trong dự án, người học có thể đọc được. Với `MATCHING` thì đếm **số cặp**, đừng ghi cặp nào ghép với cặp nào.
 - **Loại có ô trống ghi số ô trước, rồi mới tới đáp án.** `SELECT_WORD` đếm đúng/nhiễu **theo từng ô** — đó là chỗ tài liệu hay thiếu nhiễu ở một ô mà nhìn tổng thể không thấy. `DRAG_DROP` ghi số ô và số mảnh nhiễu chung. Số ô trống phải khớp số ô `[k]` trong đề bài tài liệu viết; lệch thì gắn mã SL ngay tại dòng đó.
 - Cột *Type* và *Layout* ghi nguyên văn tài liệu kèm giá trị API sau mũi tên.
+- **Hai cột *Section* và *Căn cứ* chỉ có ở `MID_TERM_TEST` và `FINAL_TEST`.** Mỗi câu của test cấp khóa phải được gắn vào một Section (`question_filter.chapter_id` ở bước 7). Tài liệu ghi rõ Section cho câu đó thì theo tài liệu, cột *Căn cứ* ghi `tài liệu ghi`. Tài liệu không ghi thì **bạn tự phân tích**: đối chiếu đề bài và đáp án với nội dung Activity và LO con của từng Section, chọn Section mà câu hỏi lấy kiến thức từ đó. Cột *Căn cứ* ghi Activity/LO con khớp nhất để người dùng soát nhanh.
+  - Chỉ chọn một Section mỗi câu. Khớp nhiều Section ngang nhau, hoặc không khớp Section nào, thì ghi **chưa xác định**, gắn mã SL (`bạn quyết`), và ghi các Section ứng viên ở cột *Căn cứ*. Không đoán bừa cho đủ.
+  - Section Test và Quiz trong Tab **không** có hai cột này — câu hỏi của chúng tự gắn vào Section chứa bài test.
+  - Bước 7 chép đúng số ở cột *Section* vào `.section` của từng câu; không phân tích lại. Còn câu **chưa xác định** thì bước 7 không chạy được bài đó.
 - Số đáp án không khớp `Question Type:`, hoặc nhãn dùng sai loại (`Đáp án nhiễu:` trong câu `Matching`, `Cặp ghép:` trong câu `One Choice`…), thì gắn mã SL ngay tại dòng đó — bước 7 sẽ dừng, người dùng cần biết trước khi duyệt.
 - Bài test không có câu hỏi nào trong tài liệu → ghi **"không có — tạo khung rỗng"**. Đó là trạng thái hợp lệ, không phải lỗi.
 - Ghi thêm **điểm mỗi câu**: tài liệu không khai thì ghi *chia đều* kèm số thực tế (3 câu → `33.33` mỗi câu). Mọi câu cùng một số; tổng không được vượt 100.
@@ -170,7 +174,7 @@ Quy tắc của mục này:
 
 Mục quan trọng nhất và là mục dễ bị bỏ nhất. Đánh mã `SL-01`, `SL-02`… để mục 3 và 5 trỏ tới.
 
-Ghi **mọi** chỗ cấu trúc hoặc nội dung bài học tự mâu thuẫn, bị cắt hay không đọc được. Không kiểm tra sai lệch về câu hỏi vì câu hỏi nằm ngoài phạm vi tạo tự động.
+Ghi **mọi** chỗ cấu trúc hoặc nội dung bài học tự mâu thuẫn, bị cắt hay không đọc được. Không kiểm tra sai lệch về câu hỏi vì câu hỏi nằm ngoài phạm vi tạo tự động — **trừ** câu Mid/Final Test chưa xác định được Section (mục 5), vì thiếu nó thì bước 7 không tạo được câu đó.
 
 ```markdown
 ## 6. Sai lệch và thiếu hụt
@@ -186,6 +190,7 @@ Ghi **mọi** chỗ cấu trúc hoặc nội dung bài học tự mâu thuẫn, 
 | SL-13 | `Passpoint:` | — | bỏ trống | Gửi mặc định **65**. Bạn điền vào tài liệu rồi bảo tôi chạy lại |
 | SL-14 | `Course Category:` | "Kỹ năng" | khớp 3 category: *Kỹ năng mềm* · *Kỹ năng bán hàng* · *Kỹ năng vận hành* | **Script sẽ dừng, tôi không chọn hộ.** Bạn chọn một rồi ghi tên đầy đủ vào tài liệu |
 | SL-17 | Setting Section Test 1 | — | không khai nhãn nào | Giữ mặc định `QUIZ_CFG`. Muốn khác thì bạn thêm 6 nhãn vào tài liệu |
+| SL-18 | Final Test › Câu 7 | — | khớp ngang Section 1 (Activity 1.2) và Section 3 (Activity 3.1) | **Bạn quyết** Section nào, sửa cột *Section* ở mục 5 |
 
 Cột *Xử lý đề xuất* chỉ được chứa hai loại nội dung: **"tạo theo thực tế"** hoặc **"bạn quyết"**. Không bao giờ là "tôi sẽ tự viết thêm".
 
@@ -203,7 +208,7 @@ Người dùng **không phải cung cấp id nào**. Mục này liệt kê thứ
 | Câu hỏi | 3 câu vào ngân hàng câu hỏi của khóa | **không xóa được** bằng skill — sai thì bạn dọn tay trên giao diện |
 
 Duyệt xong thì trả lời:
-1. Outline này đúng chưa — sửa gì thì sửa thẳng vào file rồi bảo tôi đọc lại.
+1. Outline này đúng chưa — sửa gì thì sửa thẳng vào file rồi bảo tôi đọc lại. Soát kỹ cột *Section* của Mid/Final Test ở mục 5: đó là phân tích của tôi, không phải tài liệu ghi.
 2. Các mục SL cần bạn quyết: SL-04, SL-05, SL-06, SL-07, SL-08.
 
 Tôi **không tạo gì trên LMS** cho tới khi bạn trả lời.

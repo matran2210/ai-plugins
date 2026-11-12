@@ -23,7 +23,7 @@ Thứ tự sau là **cố ý, không đảo được**:
 
 - **Bước 5 trước bước 6.** Ảnh nhúng vào HTML của Document TEXT bằng `resource_id`, và **không có endpoint sửa Document sau khi tạo**. Upload sau khi dựng document là ảnh không bao giờ vào được bài học.
 
-> 🚫 **Không tạo Question Topic.** Câu hỏi tạo thẳng vào ngân hàng câu hỏi của khóa (`question_filter.course_id`). Bài test tài liệu không viết câu nào thì để khung rỗng — không tự nghĩ câu hỏi.
+> 🚫 **Không tạo Question Topic.** Câu hỏi tạo thẳng vào ngân hàng câu hỏi của khóa (`question_filter.course_id`), gắn vào Section qua `question_filter.chapter_id`. Bài test tài liệu không viết câu nào thì để khung rỗng — không tự nghĩ câu hỏi.
 
 Thứ tự bắt buộc, không đảo, không gộp, không làm trước.
 
@@ -377,7 +377,7 @@ Soạn **một file cho một bài test** tại `<course-slug>/work/questions-<t
 {
   "test": "final",
   "questions": [
-    { "n": 1,
+    { "n": 1, "section": 1,
       "content": "<p>Market Research được định nghĩa như thế nào?</p>",
       "qtype": "One Choice",
       "layout": "One column",
@@ -385,7 +385,7 @@ Soạn **một file cho một bài test** tại `<course-slug>/work/questions-<t
         { "answer": "Là quá trình thu thập và phân tích bằng chứng…", "is_correct": true },
         { "answer": "Quá trình thu thập càng nhiều dữ liệu càng tốt.", "is_correct": false }
       ] },
-    { "n": 2,
+    { "n": 2, "section": 2,
       "content": "<p>Ghép mỗi chỉ số với điều nó phản ánh.</p>",
       "qtype": "Matching",
       "layout": "One column",
@@ -393,7 +393,7 @@ Soạn **một file cho một bài test** tại `<course-slug>/work/questions-<t
         { "left": "Tỷ lệ chuyển đổi",  "right": "Mức độ thuyết phục của trang sản phẩm" },
         { "left": "Lượt xem sản phẩm", "right": "Hiệu quả quảng cáo và thứ hạng tìm kiếm" }
       ] },
-    { "n": 3,
+    { "n": 3, "section": 2,
       "content": "<p>doanh thu = lượt xem × {{blank}} × {{blank}}.</p>",
       "qtype": "Select Word",
       "layout": "Two column",
@@ -414,6 +414,7 @@ scripts/course/create-question.sh <course-slug>/work/questions-final.json \
 
 - `test` — khóa đặt state key `q:<test>:<n>`: `final`, `mid`, `section:1`, `tab:1:0:0`. **Một bài test một file**, và chính chuỗi này được `--questions` dùng lại ở 7.2.
 - `n` — số trong nhãn `Câu <n>.`; là state key nên **không đánh lại**.
+- `section` — **chỉ có ở `final` / `mid`, và bắt buộc ở đó**: số Section chép nguyên từ cột *Section* ở mục 5 của `outline.md` **đã duyệt**. Không phân tích lại ở bước này. Script tra `SECTION_ID` từ state key `section:<section>` làm `chapter_id`. Bài `section:N` / `tab:N:A:T` **không** khai — script lấy N từ `test`, khai là script dừng.
 - `content` — đề bài **sau dấu chấm**, bọc `<p>…</p>`.
 - `qtype` — **chép nguyên văn nhãn `Question Type:`**, bảy loại: `One Choice` · `Multiple Choice` · `True / False` · `Matching` · `Select Word` · `Fill Word` · `Drag & Drop`. Script tự quy ra enum API.
 - `layout` — **chép nguyên văn nhãn `Question Layout:`**: `One column` hoặc `Two column`. Script tự quy ra `HORIZONTAL` / `VERTICAL`.

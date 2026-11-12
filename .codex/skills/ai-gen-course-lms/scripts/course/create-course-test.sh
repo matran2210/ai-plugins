@@ -16,7 +16,7 @@
 #   --graded "<Graded Assignment:>"          Yes | No
 #   --pass-point "<Pass Point:>"             số, chấp nhận cả dạng "80%"
 #   --grading-preference "<Grading Preference:>"  After all questions | After each question
-#   --attempt "<Attempt:>"                   số lần làm lại
+#   --attempt "<Attempt:>"                   số lần làm lại, hoặc Unlimited
 #
 # --questions <questions.json>: nối câu hỏi đã tạo ở bước 7.1 vào bài test. Script
 # đọc id từ state key `q:<test>:<n>`, nên create-question.sh PHẢI chạy trước.
@@ -164,8 +164,10 @@ if [ -n "$GPREF" ]; then
     *) die "--grading-preference không nhận '$GPREF' — nhãn 'Grading Preference:' chỉ hỗ trợ 'After all questions' hoặc 'After each question'" ;;
   esac
 fi
-if [ -n "$ATTEMPT" ]; then
-  printf '%s' "$ATTEMPT" | grep -qE '^[0-9]+$' || die "--attempt phải là số nguyên, nhận: $ATTEMPT"
+if [ -n "$ATTEMPT" ] && [ "$(norm "$ATTEMPT")" = "unlimited" ]; then
+  add_ovr is_limited false
+elif [ -n "$ATTEMPT" ]; then
+  printf '%s' "$ATTEMPT" | grep -qE '^[0-9]+$' || die "--attempt phải là số nguyên hoặc Unlimited, nhận: $ATTEMPT"
   # is_limited bật thì BẮT BUỘC kèm limit_count — thiếu một trong hai thì giới
   # hạn số lần làm không có hiệu lực, mà API vẫn trả 201.
   add_ovr is_limited true

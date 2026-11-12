@@ -62,7 +62,8 @@ COURSE_SETTING="${COURSE_SETTING:-}"
 # --------------------------------------------------- Câu hỏi (bước 7) --------
 # Phần BẤT BIẾN của POST /question/single, lấy từ request thật của giao diện.
 # Phần thay đổi theo từng câu (question_content, qType, display_type, answers,
-# question_filter.course_id) do create-question.sh cộng vào.
+# question_filter.course_id, question_filter.chapter_id) do create-question.sh
+# cộng vào.
 QUESTION_CFG="${QUESTION_CFG:-}"
 [ -n "$QUESTION_CFG" ] || QUESTION_CFG='{"groups":[],"assignment_type":"","quiz_question_instances":[],"level":"FUNDAMENTAL","is_self_reflection":false,"solution":"","hint":"","tags":[],"question_category_id":[],"question_topic_id":"question-list","text_editor_files":[],"is_independent_question":false,"quiz":{}}'
 
