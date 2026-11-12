@@ -64,7 +64,7 @@ Script thì nằm trong thư mục skill, là thư mục khác. **Mọi tài li�
 /đường/dẫn/tới/skill/ai-gen-course-lms/scripts/course/start.sh --course <id>
 ```
 
-**Việc đầu tiên của lượt**, trước cả bước 0: xác định đường dẫn thư mục skill (`.claude/skills/ai-gen-course-lms/` của dự án, hoặc `~/.claude/skills/ai-gen-course-lms/` nếu cài toàn cục) và dùng lại nguyên văn cho mọi lệnh sau.
+**Việc đầu tiên của lượt**, trước cả bước 0: xác định đường dẫn thư mục skill và dùng lại nguyên văn cho mọi lệnh sau. Skill được cài qua plugin `course-builder`, nên thư mục này nằm trong cache plugin (dạng `~/.claude/plugins/cache/<marketplace>/course-builder/<version>/skills/ai-gen-course-lms/`) — lấy đúng đường dẫn ở dòng *Base directory for this skill* hiện ra khi skill được nạp, đừng đoán.
 
 > ⚠️ **Đừng đặt vào biến shell** kiểu `SKILL=$(...)`. Mỗi lệnh Bash là một shell riêng — biến không sống sang lệnh kế tiếp, và từ lệnh thứ hai trở đi đường dẫn sẽ thành `/scripts/…`.
 

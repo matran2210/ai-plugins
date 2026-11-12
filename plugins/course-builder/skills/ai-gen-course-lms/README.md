@@ -128,21 +128,25 @@ Thứ duy nhất Claude không đưa lên: **file quá lớn** phải upload nhi
 
 Làm đủ bốn bước dưới đây **trước khi** nhờ Claude việc gì. Thiếu bước 2 thì skill tắc ngay ở bước 0 mà thông báo lỗi không nói được vì sao.
 
-### 1. Chép skill vào máy
+### 1. Cài plugin `course-builder`
 
-```bash
-# dùng cho một dự án
-mkdir -p <thư mục dự án>/.claude/skills
-cp -r ai-gen-course-lms <thư mục dự án>/.claude/skills/
+Skill này nằm trong plugin `course-builder` của marketplace `lms-plugins` (repo này). Trong Claude Code:
 
-# hoặc dùng cho mọi dự án
-mkdir -p ~/.claude/skills
-cp -r ai-gen-course-lms ~/.claude/skills/
+```text
+/plugin marketplace add <đường dẫn hoặc git URL của repo>
+/plugin install course-builder@lms-plugins
 ```
 
-`cp` không tự tạo thư mục cha — thiếu `mkdir -p` là báo `No such file or directory`.
+Hoặc từ terminal:
 
-Khởi động lại Claude Code để nó nhận skill mới.
+```bash
+claude plugin marketplace add <đường dẫn hoặc git URL của repo>
+claude plugin install course-builder@lms-plugins
+```
+
+Khởi động lại Claude Code để nó nhận plugin mới.
+
+Các lệnh chạy tay bên dưới viết `<skill>/scripts/…`, với `<skill>` là thư mục `plugins/course-builder/skills/ai-gen-course-lms` trong bản clone của repo.
 
 ### 2. Khai server MCP `lark`
 
@@ -175,7 +179,7 @@ Skill đọc tài liệu Lark qua MCP. Tạo `.mcp.json` ở **gốc thư mục 
 ### 2b. Khai App ID và App Secret vào máy bạn
 
 ```bash
-.claude/skills/ai-gen-course-lms/scripts/lark-setup.sh
+<skill>/scripts/lark-setup.sh
 ```
 
 Hộp thoại hiện lên, nhập App ID (dạng `cli_…`) và App Secret của app Lark tổ chức bạn. Script ghi vào khối `env` của `~/.claude/settings.json` và `chmod 600`.
@@ -185,7 +189,7 @@ Claude Code nạp khối `env` đó vào môi trường **trước khi** khởi 
 Kiểm tra đã khai chưa (không in ra secret, chỉ 4 ký tự đầu):
 
 ```bash
-.claude/skills/ai-gen-course-lms/scripts/lark-setup.sh --check
+<skill>/scripts/lark-setup.sh --check
 ```
 
 > ⚠️ Secret lưu **plaintext** trong `settings.json`, giống mọi biến môi trường khác. **Đừng commit file đó.** Cần chặt hơn thì để secret trong macOS Keychain rồi export ra biến trong shell profile.
@@ -228,7 +232,7 @@ Cách thường dùng: **không làm gì cả.** Claude tự phát hiện chưa 
 Muốn chủ động đăng nhập trước:
 
 ```bash
-.claude/skills/ai-gen-course-lms/scripts/login.sh
+<skill>/scripts/login.sh
 ```
 
 Chạy từ **thư mục dự án**, đừng `cd` vào thư mục skill — mọi file dữ liệu nằm trong `<tên-khóa>/` của dự án, không nằm trong gói skill.
