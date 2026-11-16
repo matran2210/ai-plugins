@@ -29,6 +29,8 @@ Thứ tự bắt buộc, không đảo, không gộp, không làm trước.
 
 > 🚫 **Không tự nghĩ chủ đề, không bịa nội dung.** Tài liệu Lark là nguồn duy nhất. Không có link → hỏi người dùng và **kết thúc lượt**, đừng đề xuất chủ đề, đừng dựng khóa mẫu.
 
+> ↪️ **Thêm Section, bài test hay câu hỏi vào khóa ĐÃ CÓ** (người dùng đưa link `…/course-full/<course_id>`) thì không dùng skill này. Dùng skill `ai-update-course-lms` cùng plugin.
+
 ## Thư mục làm việc
 
 **Không bao giờ `cd`.** Mọi lệnh chạy với cwd là **thư mục dự án của người dùng**.

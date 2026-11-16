@@ -7,6 +7,7 @@ Bộ plugin LMS cho Claude Code và Codex. Mỗi plugin là một thư mục tro
 | Plugin | Skill | Việc |
 |---|---|---|
 | `course-builder` | `ai-gen-course-lms` | Dựng khóa học UpBase LMS từ tài liệu thiết kế trên Lark. Xem [README của skill](plugins/course-builder/skills/ai-gen-course-lms/README.md) |
+| `course-builder` | `ai-update-course-lms` | Thêm Section mới, Section/Mid/Final Test và câu hỏi vào khóa đã có, từ link khóa OPS + tài liệu Lark. Dùng chung script của `ai-gen-course-lms` |
 
 ## Claude Code
 

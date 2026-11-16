@@ -10,8 +10,7 @@
     {
       "name": "course-builder",
       "source": "./plugins/course-builder",
-      "description": "Dựng khóa học UpBase LMS từ tài liệu thiết kế trên Lark",
-      "version": "1.0.0"
+      "description": "Dựng khóa học UpBase LMS từ tài liệu thiết kế trên Lark"
     }
   ]
 }
