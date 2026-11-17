@@ -197,14 +197,35 @@ Kiểm tra đã khai chưa (không in ra secret, chỉ 4 ký tự đầu):
 
 ### 3. Cài dependency
 
-Bắt buộc: `bash`, `curl`, `jq`, `openssl`, `node` (để `npx` chạy lark-mcp).
-Tùy chọn: `lsof` — có thì Claude biết chính xác lúc nào bạn đăng nhập Lark xong, không có thì nó chờ cứng 45 giây.
+Máy cần `bash`, `curl`, `jq`, `openssl`, `node` (kèm `npx`). Plugin có script tự kiểm tra và cài phần thiếu; người vận hành không cần cài từng công cụ.
+
+Gửi trong chat:
+
+```text
+Dùng setup-course-builder để kiểm tra và cài các công cụ hỗ trợ còn thiếu trên máy này.
+```
+
+Hoặc chạy trực tiếp từ thư mục repo:
+
+```bash
+sh plugins/course-builder/scripts/setup-dependencies.sh
+```
+
+Windows chưa có Bash thì dùng PowerShell:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File plugins/course-builder/scripts/setup-dependencies.ps1
+```
+
+Thêm `--check` cho script shell hoặc `-Check` cho PowerShell để chỉ kiểm tra. Khi cài xong, đóng/mở lại ứng dụng. Với plugin đã cài qua marketplace, trợ lý dùng đường dẫn script thực tế trong plugin.
 
 | Hệ | Cách chạy |
 |---|---|
-| macOS | Terminal có sẵn. `brew install jq node`; `lsof` có sẵn |
-| Windows | **Git Bash** hoặc **WSL** — không dùng CMD hay PowerShell trực tiếp. Git Bash không có `lsof`, vẫn chạy được |
-| Linux | `apt install jq lsof nodejs` hoặc tương đương |
+| macOS | Script dùng Homebrew, tự cài Homebrew nếu thiếu |
+| Windows | File PowerShell tự cài Git Bash và công cụ thiếu qua WinGet; nếu dùng WSL thì chạy script shell bên trong WSL |
+| Linux/WSL | Script dùng trình quản lý gói của hệ điều hành; có thể cần quyền sudo |
+
+`lsof` là tùy chọn, không nằm trong danh sách bắt buộc script cài.
 
 Trên máy không phải macOS, Claude không tự mở được browser — nó in link Lark ra cho bạn tự mở.
 
@@ -216,11 +237,11 @@ Thiếu quyền thì đăng nhập vẫn được nhưng script dừng ở `403`
 
 ### Kiểm tra nhanh đã sẵn sàng chưa
 
-```bash
-for c in bash curl jq openssl node; do command -v $c >/dev/null && echo "OK    $c" || echo "THIẾU $c  (bắt buộc)"; done
-command -v lsof >/dev/null && echo "OK    lsof" || echo "thiếu lsof (tùy chọn, vẫn chạy được)"
-claude mcp list | grep lark
+```text
+Dùng setup-course-builder để chỉ kiểm tra các công cụ hỗ trợ trên máy, chưa cài đặt.
 ```
+
+Bước này chỉ kiểm tra công cụ; không kiểm tra kết nối Lark hay quyền OPS.
 
 ---
 

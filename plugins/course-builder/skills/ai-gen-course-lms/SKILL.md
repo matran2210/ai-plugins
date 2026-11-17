@@ -524,7 +524,7 @@ Xong bước 7 thì báo người dùng, gọn trong một tin nhắn:
 
 ## Môi trường
 
-Cần `bash`, `curl`, `jq`, `openssl`, `node`; Windows dùng Git Bash hoặc WSL. `lsof` là tùy chọn. Hướng dẫn cho người vận hành: `README.md`.
+Cần `bash`, `curl`, `jq`, `openssl`, `node` kèm `npx`; Windows dùng Git Bash hoặc WSL. `lsof` là tùy chọn. Nếu người dùng yêu cầu kiểm tra/cài công cụ hoặc gặp lỗi thiếu công cụ, dùng skill `setup-course-builder` cùng plugin; không bắt họ tự cài từng gói. Bước cài công cụ không đọc Lark hay tạo dữ liệu LMS. Hướng dẫn cho người vận hành: `README.md`.
 
 Hai hệ xác thực **tách rời nhau, không thay thế nhau**:
 
