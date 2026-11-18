@@ -5,7 +5,7 @@ Dựng khóa học trên UpBase LMS **từ một tài liệu thiết kế trên 
 Một luồng duy nhất. Skill **không tạo Question Topic** — câu hỏi tạo thẳng vào ngân hàng câu hỏi của khóa. Bài test nào tài liệu không viết câu nào thì để khung rỗng.
 
 ```text
-bước 0  đăng nhập Lark        ← bạn bấm link
+bước 0  đăng nhập Lark        ← bạn duyệt link xin quyền
 bước 1  đọc tài liệu
 bước 2  tải ảnh/video về project
 bước 3  xuất outline.md       ← BẠN DUYỆT, skill dừng ở đây
@@ -40,16 +40,14 @@ Dựng khóa thứ hai là thư mục mới, không đụng gì tới khóa cũ.
 
 ## Ai chạy cái gì
 
-Hầu hết lệnh trong tài liệu này **không dành cho bạn**. Việc của bạn chỉ có ba: bấm link Lark, duyệt `outline.md`, nhập mật khẩu OPS vào hộp thoại.
+Hầu hết lệnh trong tài liệu này **không dành cho bạn**. Việc của bạn chỉ có ba: duyệt link xin quyền Lark, duyệt `outline.md`, nhập mật khẩu OPS vào hộp thoại.
 
 | | Bạn làm | Claude làm |
 |---|---|---|
-| đăng nhập Lark trên browser | ✅ bấm vào link Claude mở ra | ❌ không đăng nhập thay bạn |
 | duyệt `outline.md` | ✅ **bắt buộc** — không duyệt thì không tạo gì | ❌ không tự duyệt hộ |
 | `scripts/login.sh` | được, khi muốn tự đăng nhập | ❌ không bao giờ |
 | `scripts/login.sh --gui` | không cần | ✅ ở bước 4, **mỗi lượt** |
-| cấu hình kết nối Lark (`.mcp.json`, `scripts/lark-setup.sh`) | ✅ **tự làm thủ công**, xem [Cài đặt](#cài-đặt) | ❌ không bao giờ |
-| `scripts/media/download.sh` | chỉ khi gỡ lỗi | ✅ ở bước 2 |
+| `lark-cli auth login` | ✅ duyệt link trên browser | ✅ tạo link, chờ bạn duyệt |
 | `scripts/*/start.sh` | chỉ khi gỡ lỗi | ✅ |
 | `scripts/course/build-section.sh` | ⚠️ xem cảnh báo ở [Tham chiếu lệnh](#tham-chiếu-lệnh) | ✅ |
 | `scripts/course/create-course-test.sh` | ⚠️ như trên | ✅ |
@@ -62,14 +60,16 @@ Mật khẩu vẫn không đi qua Claude. Hộp thoại là một cửa sổ ri�
 
 ---
 
-## Bước 0 — đăng nhập Lark
+## Bước 0 — kết nối Lark
 
-Việc của bạn: **bấm vào tab browser mà Claude mở ra và đăng nhập Lark**. Link đó **chỉ sống 60 giây**, nên khi Claude báo "đang mở link" thì ngồi sẵn ở browser.
+Skill đọc Lark qua **`lark-cli`**. Bạn cần cài `lark-cli` sẵn; đăng nhập và xin quyền thì Claude tự làm.
 
-- Claude tự phát hiện token hết hạn, tự mở link, tự chờ callback, tự kiểm lại. Bạn không gõ lệnh nào.
-- Bấm không kịp 60 giây cũng không sao, Claude mở link mới. Nhưng quá ba lần liên tiếp là nó dừng và báo bạn.
-- Token Lark nằm trong RAM của tiến trình MCP, **không lưu ra file**. Khởi động lại Claude Code là phải đăng nhập lại — chuyện bình thường, không phải lỗi.
-- Đọc được tài liệu rồi Claude mới đi tiếp. Chưa đọc được nguồn thì nó không làm gì khác, vì mọi thứ nằm trong tài liệu đó.
+Scope tối thiểu: `docx:document:readonly` (đọc tài liệu), `docs:document.media:download` (tải ảnh/video), thêm quyền đọc wiki nếu link là trang `wiki`.
+
+- Claude kiểm `lark-cli auth status`. Đăng nhập còn hạn và đủ scope thì đi tiếp.
+- Chưa đăng nhập, hết hạn, hoặc thiếu scope → Claude **tạo link xin quyền** và mở trên browser. Việc của bạn: bấm duyệt. Claude chờ xong rồi tự đi tiếp.
+- Đang đọc tài liệu hay tải media mà gặp thiếu quyền → Claude cũng tạo link xin đúng quyền còn thiếu, rồi chạy tiếp.
+- Ba lần liên tiếp không được thì Claude dừng và báo bạn.
 
 ### Đọc được gì, không đọc được gì
 
@@ -81,11 +81,9 @@ Việc của bạn: **bấm vào tab browser mà Claude mở ra và đăng nhậ
 
 Bảng tổng quan trong tài liệu thường là **Sheet nhúng** — Claude sẽ nói rõ là không đọc được và ghi vào mục *Sai lệch*. Muốn nội dung đó vào khóa học thì bạn copy nó ra dạng text trong tài liệu.
 
-### Cần bật tool tải media
+### Cần quyền tải media
 
-Bước 2 cần tool `drive.v1.media.batchGetTmpDownloadUrl` trong cấu hình MCP của server `lark` (`.mcp.json`, danh sách sau cờ `-t`). Thiếu nó thì Claude dừng ở bước 2 và nhắc bạn.
-
-Sau khi thêm vào `.mcp.json`: **khởi động lại Claude Code**, rồi **đăng nhập Lark lại** (token nằm trong RAM tiến trình cũ nên restart là mất).
+Bước 2 cần scope `docs:document.media:download`. Thiếu thì Claude tạo link xin quyền đó, bạn duyệt xong là tải tiếp.
 
 ---
 
@@ -125,7 +123,7 @@ Thứ duy nhất Claude không đưa lên: **file quá lớn** phải upload nhi
 
 ## Cài đặt
 
-Làm đủ bốn bước dưới đây **trước khi** nhờ Claude việc gì. Thiếu bước 2 thì skill tắc ngay ở bước 0 mà thông báo lỗi không nói được vì sao.
+Làm đủ ba bước dưới đây **trước khi** nhờ Claude việc gì. `lark-cli` phải cài sẵn; đăng nhập thì Claude tự xin ở bước 0.
 
 ### 1. Cài plugin `course-builder`
 
@@ -147,55 +145,7 @@ Khởi động lại Claude Code để nó nhận plugin mới.
 
 Các lệnh chạy tay bên dưới viết `<skill>/scripts/…`, với `<skill>` là thư mục `plugins/course-builder/skills/ai-gen-course-lms` trong bản clone của repo.
 
-### 2. Khai server MCP `lark`
-
-Skill đọc tài liệu Lark qua MCP. Tạo `.mcp.json` ở **gốc thư mục dự án**:
-
-```json
-{
-  "mcpServers": {
-    "lark": {
-      "type": "stdio",
-      "command": "npx",
-      "args": ["-y", "@larksuiteoapi/lark-mcp@0.5.1", "mcp",
-        "-a", "${LARK_APP_ID}",
-        "-s", "${LARK_APP_SECRET}",
-        "-d", "https://open.larksuite.com",
-        "--oauth", "--token-mode", "user_access_token",
-        "--scope", "docx:document wiki:wiki drive:drive offline_access",
-        "-t", "preset.doc.default,docx.v1.document.get,docx.v1.documentBlock.list,docx.v1.documentBlockChildren.get,drive.v1.file.list,drive.v1.media.batchGetTmpDownloadUrl",
-        "-l", "en"]
-    }
-  }
-}
-```
-
-**`.mcp.json` không chứa secret** — nó chỉ viết `${LARK_APP_ID}` / `${LARK_APP_SECRET}`, Claude Code nội suy lúc khởi chạy MCP server. File này commit được.
-
-- `drive.v1.media.batchGetTmpDownloadUrl` là tool tải media. Thiếu nó thì bước 2 không chạy.
-- Vào `https://open.larksuite.com/app/<app_id>/safe` khai redirect URL `http://localhost:3000/callback`, nếu không thì đăng nhập Lark sẽ báo lỗi `redirect_uri`.
-
-### 2b. Khai App ID và App Secret vào máy bạn
-
-```bash
-<skill>/scripts/lark-setup.sh
-```
-
-Hộp thoại hiện lên, nhập App ID (dạng `cli_…`) và App Secret của app Lark tổ chức bạn. Script ghi vào khối `env` của `~/.claude/settings.json` và `chmod 600`.
-
-Claude Code nạp khối `env` đó vào môi trường **trước khi** khởi chạy MCP server, và nó **ưu tiên cao hơn** biến shell. Muốn dùng shell profile thay thế cũng được — export `LARK_APP_ID` và `LARK_APP_SECRET` trước khi mở Claude Code.
-
-Kiểm tra đã khai chưa (không in ra secret, chỉ 4 ký tự đầu):
-
-```bash
-<skill>/scripts/lark-setup.sh --check
-```
-
-> ⚠️ Secret lưu **plaintext** trong `settings.json`, giống mọi biến môi trường khác. **Đừng commit file đó.** Cần chặt hơn thì để secret trong macOS Keychain rồi export ra biến trong shell profile.
-
-**Khởi động lại Claude Code** sau khi khai — tiến trình MCP đang chạy vẫn giữ môi trường cũ.
-
-### 3. Cài dependency
+### 2. Cài dependency
 
 Máy cần `bash`, `curl`, `jq`, `openssl`, `node` (kèm `npx`). Plugin có script tự kiểm tra và cài phần thiếu; người vận hành không cần cài từng công cụ.
 
@@ -227,9 +177,7 @@ Thêm `--check` cho script shell hoặc `-Check` cho PowerShell để chỉ ki�
 
 `lsof` là tùy chọn, không nằm trong danh sách bắt buộc script cài.
 
-Trên máy không phải macOS, Claude không tự mở được browser — nó in link Lark ra cho bạn tự mở.
-
-### 4. Tài khoản UpBase OPS
+### 3. Tài khoản UpBase OPS
 
 Dùng tài khoản OPS của bạn, cần quyền tạo course section và question.
 
@@ -325,10 +273,10 @@ Cờ nào thiếu giá trị thì script báo `ERROR: --<cờ> cần một giá 
 ### Bước 2 — tải media
 
 ```bash
-scripts/media/download.sh '<url_tạm>' 'assets/<khóa>/<tên>.mp4'
+lark-cli docs +media-download --token '<token>' --output '<khóa>/assets/<tên>.mp4' --as user
 ```
 
-Không cần token OPS — URL tạm do Lark ký sẵn. In `OK <byte> <đường dẫn>`, hoặc `SKIP` nếu file đã có và không rỗng nên chạy lại không tải lại. URL tạm có hạn; hết hạn thì Lark trả về **trang HTML kèm mã 200** chứ không trả mã lỗi, nên script chặn theo `Content-Type` và báo `server trả HTML`.
+Không cần token OPS. File đã có và không rỗng thì Claude bỏ qua, chạy lại không tải lại.
 
 ### Bước 5 — tạo khóa học, ảnh bìa, media và tài liệu khóa
 
@@ -413,9 +361,9 @@ Hai hệ xác thực tách rời nhau:
 
 | | Lark | UpBase OPS |
 |---|---|---|
-| Token nằm ở | RAM tiến trình `lark-mcp` | `$UPBASE_ENV_FILE`, mặc định `$TMPDIR/upbase-session-<env>.env`, `chmod 600` — **tách theo môi trường** |
-| Sống bao lâu | tới khi tiến trình restart | theo realm Keycloak — `login.sh` in hạn thật sau khi đăng nhập |
-| Đăng nhập lại thế nào | bấm link browser | hộp thoại `login.sh` |
+| Token nằm ở | do `lark-cli` quản lý, skill không đụng tới | `$UPBASE_ENV_FILE`, mặc định `$TMPDIR/upbase-session-<env>.env`, `chmod 600` — **tách theo môi trường** |
+| Sống bao lâu | `lark-cli auth status` in hạn thật | theo realm Keycloak — `login.sh` in hạn thật sau khi đăng nhập |
+| Đăng nhập lại thế nào | Claude tạo link xin quyền, bạn duyệt trên browser | hộp thoại `login.sh` |
 
 Mật khẩu và tên đăng nhập OPS **không lưu ở đâu cả**.
 
@@ -449,7 +397,7 @@ Mỗi biến theo dạng `${VAR:-mặc định}`, nên có hai cách đổi: s�
 | | `ACTIVITY_DEFAULT_DURATION` | `30` phút |
 | | `IMAGE_DEFAULT_WIDTH` | `200` |
 | Phân trang | `PAGE_SIZE_COURSES` · `PAGE_SIZE_CATEGORIES` | `100` · `50` |
-| Mạng | `UPLOAD_*` · `DOWNLOAD_*` timeout/retry | xem file |
+| Mạng | `UPLOAD_*` timeout/retry | xem file |
 
 `QUIZ_CFG` — cấu hình chung của bốn loại bài test — nằm riêng ở `scripts/course/quiz-config.sh`, cạnh hàm dùng nó.
 
@@ -489,11 +437,8 @@ Thứ tự ưu tiên khi phân giải base URL: **biến môi trường → sess
 
 | Hiện tượng | Nguyên nhân và cách xử lý |
 |---|---|
-| Claude báo link Lark hết hạn liên tục | Link sống 60 giây. Mở sẵn browser rồi mới bảo Claude thử lại |
-| `claude mcp list` hiện `⏸ Pending approval` cho `lark` | Lần kiểm tra CLI riêng, không chặn phiên đang chạy. Không phải nguyên nhân mất kết nối |
-| browser báo lỗi `redirect_uri` | App Lark chưa khai `http://localhost:3000/callback` trong mục security settings |
-| Claude nói thiếu tool tải media | Thêm `drive.v1.media.batchGetTmpDownloadUrl` vào `-t` trong `.mcp.json`, restart Claude Code, đăng nhập Lark lại |
-| `server trả HTML … không phải media` | URL tạm hết hạn. Claude lấy URL mới rồi tải lại |
+| Claude báo không có lệnh `lark-cli` | Cài `lark-cli`, rồi bảo Claude chạy lại |
+| Claude dừng sau ba lần xin quyền Lark | Link hết hạn hoặc bạn chưa duyệt. Mở sẵn browser rồi bảo Claude thử lại |
 | Bảng trong tài liệu ra rỗng | Đó là Sheet nhúng, scope hiện tại không đọc được. Copy nội dung ra text trong tài liệu |
 | Khóa tạo ra ít Section hơn tài liệu khai | Đúng thiết kế. Xem mục *Sai lệch* của `outline.md` — tài liệu khai nhiều hơn phần thực sự viết ra |
 
@@ -539,10 +484,8 @@ ai-gen-course-lms/
   README.md                    file này — dành cho người
   scripts/
     config.sh                  ★ MỌI hằng số: base URL, mặc định khóa, timeout
-    lark-setup.sh              khai LARK_APP_ID/SECRET vào máy (bạn chạy được)
     login.sh                   đăng nhập OPS (bạn chạy được)
     lib.sh                     session, dependency, HTTP client
-    media/download.sh          tải media Lark (không cần token OPS)
     course/                    create-course.sh · start.sh · build-section.sh · upload-media.sh
                                upload-course-image.sh · add-course-resource.sh
                                create-question.sh · create-course-test.sh · create-tab-quiz.sh

@@ -550,25 +550,20 @@ Gom xong thì **ghi luôn nhãn bọc ngoài của từng token** — `Resource:
 
 Block `view` bọc ngoài **không chứa token** — nó chỉ là vỏ hiển thị. Lấy token ở block con. Bốn video của tài liệu mẫu đều nằm theo dạng `view` → `file`.
 
-Phần mở rộng file lấy từ `file.name` (`.mp4`, `.pdf`, `.png`). **Không đoán** — block `image` không có tên thì lấy đuôi từ header `Content-Type` sau khi tải, hoặc để `.bin` và ghi vào *Sai lệch*.
+Phần mở rộng file lấy từ `file.name` (`.mp4`, `.pdf`, `.png`). **Không đoán** — block `image` không có tên thì để `+media-download` tự nhận đuôi, không nhận được thì để `.bin` và ghi vào *Sai lệch*.
 
 `sheet` và `bitable` **không phải media** — chúng là tài liệu riêng, media API không tải được. Ghi token vào *Sai lệch*.
 
-### Lấy URL tạm rồi tải
-
-```text
-drive_v1_media_batchGetTmpDownloadUrl({ file_tokens: [...] }, useUAT: true)
-```
-
-- Chia lô nhỏ, **≤ 5 token mỗi lần gọi** — Lark giới hạn số token mỗi request.
-- URL trả về **có hạn**. Tải ngay trong lượt đó; không gom URL để dành.
-- `useUAT: true` như mọi lệnh Lark khác.
+### Tải
 
 ```bash
-scripts/media/download.sh '<tmp_url>' '<course-slug>/assets/<tên-mới>.<ext>'
+lark-cli docs +media-download --token '<token>' --output '<course-slug>/assets/<tên-mới>.<ext>' --as user
 ```
 
-Script tự tạo thư mục, tải có retry, chặn file rỗng, in số byte. Đừng tự gõ `curl`.
+- Mỗi token một lệnh. Lệnh tự tạo file, tự nhận đuôi file.
+- Lấy **đường dẫn thật** từ JSON kết quả để ghi manifest — không giả định đúng bằng `--output`.
+- File đã có và không rỗng thì bỏ qua, không tải lại. Không dùng `--overwrite`.
+- Đừng tự gõ `curl`.
 
 ### Quy ước đặt tên
 
@@ -607,20 +602,15 @@ Mọi file tải về phải có một dòng trong bảng *Media* của `outline
 
 | Hiện tượng | Xử lý |
 |---|---|
-| không có tool `drive_v1_media_batchGetTmpDownloadUrl` | xem mục dưới |
-| URL trả về rỗng cho một token | ghi token + tên gốc vào *Sai lệch*, tải tiếp các file khác. Không dừng cả bước |
-| tải về 0 byte | `download.sh` báo lỗi. Thử lại một lần; vẫn lỗi thì ghi vào *Sai lệch* |
-| `403` khi tải | URL tạm đã hết hạn. Lấy URL mới cho token đó rồi tải lại ngay |
+| lỗi `authorization` / `missing_scope` | xem mục dưới |
+| một token tải lỗi (không phải lỗi quyền) | thử lại một lần; vẫn lỗi thì ghi token + tên gốc vào *Sai lệch*, tải tiếp các file khác. Không dừng cả bước |
+| tải về 0 byte | xoá file rỗng, thử lại một lần; vẫn lỗi thì ghi vào *Sai lệch* |
 | file rất lớn, tải lâu | cứ tải, đừng bỏ. Nói trước cho người dùng biết là đang tải video |
 
-### Thiếu tool tải media
+### Thiếu quyền tải media
 
-Tool `drive.v1.media.batchGetTmpDownloadUrl` phải có trong danh sách `-t` của server `lark` trong `.mcp.json`. Không có thì bước 2 **không thể chạy** — và không có cách nào lách.
+`lark-cli` phải có scope tải media (`docs:document.media:download`). Thiếu thì xin quyền theo `SKILL.md` bước 0.2, với đúng các scope trong `error.missing_scopes`. Cấp xong thì tải lại đúng file vừa lỗi rồi đi tiếp.
 
-Nói với người dùng đúng ba việc, rồi **kết thúc lượt**:
-
-1. Thêm `drive.v1.media.batchGetTmpDownloadUrl` vào `-t` của server `lark` trong `.mcp.json`.
-2. Khởi động lại Claude Code để tiến trình `lark-mcp` nạp tool mới.
-3. Đăng nhập Lark lại — token nằm trong RAM tiến trình cũ nên restart là mất.
+Ba lượt xin quyền không được thì dừng và cảnh báo — bước 2 **không thể chạy** khi thiếu quyền, và không có cách nào lách.
 
 Không tự bỏ qua bước media để "làm tiếp phần còn lại": outline thiếu media là outline sai, người dùng duyệt trên dữ liệu thiếu.

@@ -2,8 +2,6 @@
 # config.sh — MỌI hằng số của skill nằm ở đây. Source file này; không chạy trực tiếp.
 #
 # lib.sh tự source file này, nên mọi script gọi API đều có sẵn các biến dưới đây.
-# scripts/media/download.sh source riêng vì nó cố ý không dùng lib.sh (tải từ URL
-# presigned của S3, không cần token UpBase).
 #
 # Mỗi biến đều theo dạng ${VAR:-mặc định}: đặt biến môi trường cùng tên là ghi đè
 # được cho một lần chạy, không phải sửa file.
@@ -97,11 +95,6 @@ PAGE_SIZE_CATEGORIES="${PAGE_SIZE_CATEGORIES:-50}"
 UPLOAD_CONNECT_TIMEOUT="${UPLOAD_CONNECT_TIMEOUT:-20}"
 UPLOAD_MAX_TIME="${UPLOAD_MAX_TIME:-3600}"
 UPLOAD_RETRY="${UPLOAD_RETRY:-2}"
-
-# Tải media từ Lark về máy.
-DOWNLOAD_CONNECT_TIMEOUT="${DOWNLOAD_CONNECT_TIMEOUT:-20}"
-DOWNLOAD_MAX_TIME="${DOWNLOAD_MAX_TIME:-1800}"
-DOWNLOAD_RETRY="${DOWNLOAD_RETRY:-3}"
 
 # ------------------------------------------------------------------ Khác -----
 # QUIZ_CFG — cấu hình chung của cả bốn loại bài test — nằm ở

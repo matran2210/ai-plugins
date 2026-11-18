@@ -1,7 +1,7 @@
 ---
 name: ai-update-course-lms
 description: Use when the user wants to ADD learning components to an UpBase LMS course that ALREADY EXISTS — they paste an OPS course link (https://uplms-ops…/course-full/<course_id>) plus a Lark doc holding only the new parts ("thêm bài test vào khóa này", "bổ sung câu hỏi cho khóa có sẵn", "thêm Section mới vào khóa"). Adds new Sections (with Activity/Tab/Document/LO), Section Test, Mid Test, Final Test and their questions. Không sửa, không xóa node cũ; không tạo khóa mới — khóa mới dùng ai-gen-course-lms.
-allowed-tools: Bash, Read, Write, Edit, Glob, Grep, AskUserQuestion, mcp__lark__drive_v1_file_list, mcp__lark__wiki_v1_node_search, mcp__lark__wiki_v2_space_getNode, mcp__lark__docx_v1_document_rawContent, mcp__lark__docx_v1_document_get, mcp__lark__docx_v1_documentBlock_list, mcp__lark__drive_v1_media_batchGetTmpDownloadUrl
+allowed-tools: Bash, Read, Write, Edit, Glob, Grep, AskUserQuestion
 ---
 
 # AI Update Course LMS
@@ -114,7 +114,7 @@ Chốt `<course-slug>` và thư mục `update-<YYYYMMDD-HHMM>/` ngay ở đây.
 
 ## Bước 2 — đọc tài liệu Lark và tải media
 
-Làm **đúng `<gen>/SKILL.md` bước 0, 1, 2**: cửa chặn token Lark, đọc cả `rawContent` lẫn block list, tải media về `<course-slug>/update-…/assets/`. Bóc nội dung theo `<gen>/references/lark-source.md`.
+Làm **đúng `<gen>/SKILL.md` bước 0, 1, 2**: cửa chặn `lark-cli`, đọc cả `rawContent` lẫn block list, tải media về `<course-slug>/update-…/assets/`. Bóc nội dung theo `<gen>/references/lark-source.md`.
 
 Khác luồng tạo ở cách hiểu **số Section**. Số trong `Section <n>` của tài liệu là **số thật trên LMS sau khi thêm**:
 

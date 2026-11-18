@@ -1,7 +1,7 @@
 ---
 name: ai-gen-course-lms
 description: Use when the user wants to build an UpBase LMS course from a Lark/Larksuite design document — they paste a Lark doc or wiki link ("dựng khóa học từ tài liệu này", "tạo khóa theo file Lark", "lên LMS khóa Planning E2E") and expect the course structure and media assets to follow that document exactly. Quiz, Section Test, Mid Test and Final Test are created as empty shells for manual question entry. Đọc tài liệu Lark, tải ảnh/video về project, xuất outline.md cho người dùng duyệt, rồi mới call API tạo. Không tự nghĩ chủ đề, không bịa nội dung ngoài tài liệu.
-allowed-tools: Bash, Read, Write, Edit, Glob, Grep, AskUserQuestion, mcp__lark__drive_v1_file_list, mcp__lark__wiki_v1_node_search, mcp__lark__wiki_v2_space_getNode, mcp__lark__docx_v1_document_rawContent, mcp__lark__docx_v1_document_get, mcp__lark__docx_v1_documentBlock_list, mcp__lark__drive_v1_media_batchGetTmpDownloadUrl
+allowed-tools: Bash, Read, Write, Edit, Glob, Grep, AskUserQuestion
 ---
 
 # AI Gen Course LMS
@@ -74,44 +74,54 @@ Script thì nằm trong thư mục skill, là thư mục khác. **Mọi tài li�
 
 Không có link tài liệu thì dừng ở đây. Có rồi thì phải **đọc được** nó mới sang bước 1: chưa đọc được thì không đăng nhập OPS, không đọc `references/` khác, không soạn gì.
 
-Kết nối Lark (server MCP `lark`, `LARK_APP_ID` / `LARK_APP_SECRET`) do **người dùng tự cấu hình thủ công** theo `README.md`. Skill không kiểm tra, không khai hộ, không chạy `scripts/lark-setup.sh`. **Không bao giờ nhận App ID/Secret qua khung chat.**
+Lark đọc qua **`lark-cli`** (chạy bằng Bash). Chưa đăng nhập hoặc thiếu quyền thì skill **tự xin cấp quyền** theo 0.2. Skill không cài đặt hay cấu hình `lark-cli`. **Không bao giờ nhận App ID/Secret hay token qua khung chat.**
 
-### 0.1 → 0.4 Xác thực token
+Scope cơ bản của skill:
 
-Token Lark sống trong RAM tiến trình `lark-mcp`, không có file cache, nên cách duy nhất biết còn hạn là gọi thật: `mcp__lark__drive_v1_file_list` với `params: {page_size: 1}`, `useUAT: true`.
-
-- Ra JSON có `files` → sang bước 1.
-- `Current user_access_token is invalid or expired` → **trong chính thông báo lỗi có sẵn `Authorization URL`**.
-
-Link chỉ sống **60 giây**, và **mỗi lần gọi lại bất kỳ tool Lark nào sẽ sinh link mới đồng thời huỷ link cũ**. Nên tool call kế tiếp phải là lệnh mở link — không grep, không đọc file, không nghĩ thêm:
-
-```bash
-open '<Authorization URL copy nguyên văn từ thông báo lỗi>'
+```text
+docx:document:readonly docs:document.media:download wiki:node:retrieve
 ```
 
-Nói trước một câu để người dùng ngó sang browser. Máy không phải macOS thì in link ra cho họ tự mở.
+`search:docs:read` chỉ cần khi người dùng đưa tên tài liệu thay vì link.
 
-Rồi chờ cổng callback đóng — **tuyệt đối không gọi tool Lark trong lúc chờ**:
+### 0.1 Kiểm tra kết nối
 
 ```bash
-if command -v lsof >/dev/null 2>&1; then
-  while lsof -nP -iTCP:3000 -sTCP:LISTEN >/dev/null 2>&1; do sleep 2; done
-else
-  sleep 45
-fi
-echo CONG_3000_DA_DONG
+lark-cli auth status
 ```
 
-Nhánh `else` là bắt buộc: máy không có `lsof` thì `while` thoát ngay vòng đầu và bạn sẽ kết luận nhầm.
+- Không có lệnh `lark-cli` → **dừng và cảnh báo** người dùng cài `lark-cli`, **kết thúc lượt**.
+- `identities.user.available: true` và `identities.user.tokenStatus: "valid"` → kiểm scope:
 
-Cổng đóng **không đồng nghĩa thành công** — link hết hạn cũng đóng. Gọi lại đúng lệnh ở 0.1 để xác minh. Vẫn lỗi → làm lại từ bước mở link. **Ba lượt liên tiếp không được thì kết thúc lượt**, đừng mở link lần thứ tư.
+  ```bash
+  lark-cli auth check --scope "docx:document:readonly docs:document.media:download wiki:node:retrieve" --json
+  ```
 
-| Hiện tượng khác | Xử lý |
-|---|---|
-| browser báo lỗi `redirect_uri` | app chưa khai `http://localhost:3000/callback` → thêm tại `https://open.larksuite.com/app/<app_id>/safe` rồi làm lại |
-| `client_id` là chuỗi `${LARK_APP_ID}` (lỗi `20028`) | env chưa nạp — nhắc người dùng tự khai `LARK_APP_ID` / `LARK_APP_SECRET` theo `README.md` rồi **khởi động lại host**, **kết thúc lượt** |
-| không có tool `mcp__lark__*` | server `lark` chưa cấu hình. Nhắc người dùng thêm qua `claude mcp`, **kết thúc lượt** |
-| không có `mcp__lark__drive_v1_media_batchGetTmpDownloadUrl` | thiếu tool tải media trong `-t` của `.mcp.json` → xử lý theo `references/lark-source.md` |
+  `missing` rỗng → sang bước 1. Còn thiếu → 0.2 với đúng các scope trong `missing`.
+- Chưa đăng nhập hoặc token hết hạn → 0.2 với scope cơ bản.
+
+### 0.2 Xin cấp quyền
+
+1. Tạo link xin quyền:
+
+   ```bash
+   lark-cli auth login --scope "<các scope cần xin, cách nhau bằng dấu cách>" --no-wait --json
+   ```
+
+   Lấy `verification_url` và `device_code` từ kết quả.
+2. Mở link cho người dùng. macOS: `open '<verification_url>'`. Luôn gửi kèm link nguyên văn trong tin nhắn, kèm một câu nhờ họ duyệt trên browser.
+3. Chờ người dùng duyệt:
+
+   ```bash
+   lark-cli auth login --device-code '<device_code>'
+   ```
+
+   Lệnh này chờ tới khi người dùng duyệt xong. Chạy với timeout tối đa của Bash. Host không gửi được tin nhắn giữa lượt, hoặc không mở được browser → gửi link làm tin nhắn cuối và **kết thúc lượt**. Lượt sau, khi người dùng báo đã duyệt, mới chạy lệnh này.
+4. Chạy lại 0.1 để xác minh. Vẫn thiếu → làm lại từ 0.2.1 với link mới. **Ba lượt liên tiếp không được thì dừng và cảnh báo**, đừng tạo link lần thứ tư.
+
+### 0.3 Thiếu quyền giữa chừng
+
+Ở bước 1–2, lệnh `lark-cli` nào trả `"ok": false` với `error.type: "authorization"` (ví dụ `missing_scope`) → làm 0.2 với đúng các scope trong `error.missing_scopes`. Cấp xong thì chạy lại **đúng lệnh vừa lỗi** rồi đi tiếp. Không tự chạy lệnh khác trong `error.hint`.
 
 ## Bước 1 — đọc tài liệu nguồn
 
@@ -121,18 +131,18 @@ Chuỗi bắt buộc, rẽ theo tiền tố ngay trước token trong URL:
 
 | Dạng URL | Làm gì |
 |---|---|
-| `.../wiki/<token>` | `wiki_v2_space_getNode({token})` → lấy `obj_token` + `obj_type` → dùng `obj_token` làm `document_id` |
+| `.../wiki/<token>` | `lark-cli wiki +node-get --node-token '<URL>'` → lấy `obj_token` + `obj_type` → dùng `obj_token` làm `document_id` |
 | `.../docx/<token>` | `<token>` chính là `document_id` |
-| chỉ có tên tài liệu, không URL | `wiki_v1_node_search({query})`; **đọc tên tìm được cho người dùng xác nhận** trước khi dùng |
+| chỉ có tên tài liệu, không URL | `lark-cli docs +search --query '<tên>'`; **đọc tên tìm được cho người dùng xác nhận** trước khi dùng |
 
 Rồi đọc **cả hai**, không chỉ một:
 
-1. `docx_v1_document_rawContent({document_id})` — text phẳng, để đọc nhanh và đối chiếu.
-2. `docx_v1_documentBlock_list({document_id}, {page_size: 500})` — **nguồn sự thật**. Chỉ ở đây mới có token ảnh/video, mới thấy bảng nhúng, mới biết cấp heading.
+1. `lark-cli api GET /open-apis/docx/v1/documents/<document_id>/raw_content --as user` — text phẳng (`rawContent`), để đọc nhanh và đối chiếu.
+2. `lark-cli api GET /open-apis/docx/v1/documents/<document_id>/blocks --params '{"page_size":500}' --as user` — block list, **nguồn sự thật**. Chỉ ở đây mới có token ảnh/video, mới thấy bảng nhúng, mới biết cấp heading.
 
 > ⚠️ **`rawContent` không đủ và biết bỏ sót mà không báo.** Nó render bảng nhúng thành **rỗng** và render video/ảnh thành **tên file trần**. Lấy `rawContent` làm nguồn duy nhất là bảo đảm mất media và mất bảng.
 
-`has_more: true` thì phải phân trang hết bằng `page_token`. Đọc thiếu trang là thiếu Section, không phải "khóa ngắn".
+`has_more: true` thì phải phân trang hết: gọi lại lệnh 2 với `--params '{"page_size":500,"page_token":"<page_token>"}'`. Đọc thiếu trang là thiếu Section, không phải "khóa ngắn".
 
 **Đọc tên tài liệu ra cho người dùng** (`node.title`) trước khi đi tiếp. Tên không khớp thứ họ nói → dừng, hỏi lại link.
 
@@ -140,7 +150,7 @@ Rồi đọc **cả hai**, không chỉ một:
 
 Cơ chế đầy đủ, quy ước đặt tên, bảng lỗi: **`references/lark-source.md`**, mục *Media*.
 
-Tóm tắt: gom `file.token` (block 23) và `image.token` (block 27) từ block list → `drive_v1_media_batchGetTmpDownloadUrl` lấy URL tạm → `scripts/media/download.sh` tải về `<course-slug>/assets/` với tên đã chuẩn hóa theo vị trí trong cây.
+Tóm tắt: gom `file.token` (block 23) và `image.token` (block 27) từ block list → `lark-cli docs +media-download --token <token> --output '<course-slug>/assets/<tên-mới>.<ext>'` tải về với tên đã chuẩn hóa theo vị trí trong cây.
 
 Ba điều không được làm:
 
@@ -502,7 +512,7 @@ Xong bước 7 thì báo người dùng, gọn trong một tin nhắn:
 2. **Số đếm cấu trúc tài liệu tự khai là tuyên bố, không phải nội dung.** "07 Section — 19 Activity" ở đầu file chỉ là chữ; đếm Section/Activity/câu hỏi thực tế từ block list.
 3. **Không call API tạo trước khi `outline.md` được người dùng duyệt.**
 4. Không in token ra output, không ghi token vào file trong project. Không bao giờ nhận mật khẩu qua khung chat.
-5. **Chỉ chạm vào API UpBase qua script trong `scripts/`.** Không tự gõ `curl` vào endpoint UpBase, không tự `source lib.sh`. Lark là ngoại lệ có chủ đích — đi qua tool `mcp__lark__*`, còn tải media đi qua `scripts/media/download.sh`.
+5. **Chỉ chạm vào API UpBase qua script trong `scripts/`.** Không tự gõ `curl` vào endpoint UpBase, không tự `source lib.sh`. Lark là ngoại lệ có chủ đích — đọc, tải media và xin quyền đều đi qua `lark-cli`, chỉ các lệnh nêu trong tài liệu này. Ngoài `auth login`, mọi lệnh Lark đều chỉ đọc.
 6. **Thiếu thông tin phiên thì hỏi một lần cho đủ.** Không đoán, không dùng lại giá trị của lần trước.
 7. **Soạn xong toàn bộ nội dung rồi mới gọi API.** Không lưu nội dung placeholder.
 8. **Chỉ tạo, không xóa.** Cần gỡ bỏ thì đưa người dùng danh sách id trong state file để họ tự xử lý.
@@ -530,9 +540,9 @@ Hai hệ xác thực **tách rời nhau, không thay thế nhau**:
 
 | | Lark (bước 0) | UpBase (bước 4) |
 |---|---|---|
-| Cách vào | OAuth qua browser, link 60s | `login.sh --gui`, hộp thoại nhập tay |
-| Token nằm ở | RAM tiến trình `lark-mcp` | `$UPBASE_ENV_FILE` |
-| Mất khi | tiến trình `lark-mcp` restart | hết hạn theo realm Keycloak, hoặc `$TMPDIR` bị dọn sau reboot |
-| Ai kiểm | gọi thật `drive_v1_file_list` | không kiểm — `login.sh --gui` mỗi lượt |
+| Cách vào | `lark-cli auth login`: skill tạo link, người dùng duyệt trên browser | `login.sh --gui`, hộp thoại nhập tay |
+| Token nằm ở | do `lark-cli` quản lý | `$UPBASE_ENV_FILE` |
+| Mất khi | token `lark-cli` hết hạn | hết hạn theo realm Keycloak, hoặc `$TMPDIR` bị dọn sau reboot |
+| Ai kiểm | `lark-cli auth status` + `auth check`; thiếu thì xin quyền | không kiểm — `login.sh --gui` mỗi lượt |
 
 Token UpBase mặc định ở `$TMPDIR/upbase-session-<env>.env` (`chmod 600`), **một file cho mỗi môi trường**. Muốn sống qua reboot: `export UPBASE_ENV_FILE="$HOME/.upbase-session-$UPBASE_ENV.env"` — giữ `$UPBASE_ENV` trong tên, bỏ ra là hai môi trường đè nhau.

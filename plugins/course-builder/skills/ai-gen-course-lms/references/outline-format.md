@@ -22,7 +22,7 @@ Bảy mục, đúng thứ tự này. Không thêm mục, không bỏ mục — m
 | Số block đọc được | 60 |
 ```
 
-`document_id` là `obj_token` lấy từ `wiki_v2_space_getNode`, không phải token trong URL.
+`document_id` là `obj_token` lấy từ `lark-cli wiki +node-get`, không phải token trong URL.
 
 ## 2. Thông tin khóa học
 
