@@ -2,6 +2,19 @@
 # Không cài WSL nếu chưa có; mặc định chuẩn bị Git Bash để chạy plugin.
 param([switch]$Check, [switch]$Help)
 $ErrorActionPreference = 'Stop'
+# Codex/Claude Code đọc stdout qua pipe dạng UTF-8. Windows PowerShell 5.1 mặc
+# định ghi bằng code page OEM nên tiếng Việt thành '?' trong kết quả agent đọc.
+try { [Console]::OutputEncoding = New-Object System.Text.UTF8Encoding $false } catch {}
+
+# Gọi lệnh ngoài (winget, bash) với ErrorActionPreference = Continue. Khi agent
+# chuyển hướng stderr, PowerShell 5.1 biến từng dòng stderr của lệnh ngoài thành
+# ErrorRecord; để 'Stop' là script chết ngay ở dòng cảnh báo đầu tiên. Kết quả
+# chỉ đọc qua exit code.
+function Invoke-Native([scriptblock]$Block) {
+    $prev = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    try { & $Block; return $LASTEXITCODE } finally { $ErrorActionPreference = $prev }
+}
 
 if ($Help) {
     Write-Host 'Cách dùng: powershell -NoProfile -ExecutionPolicy Bypass -File setup-dependencies.ps1 [-Check]'
@@ -37,8 +50,14 @@ function Install-Tool([string]$PackageId) {
         throw 'Không có WinGet. Cài/cập nhật App Installer từ Microsoft Store rồi chạy lại script.'
     }
     Write-Host "Đang cài $PackageId..."
-    & winget.exe install --id $PackageId --exact --source winget --accept-package-agreements --accept-source-agreements --disable-interactivity
-    if ($LASTEXITCODE -ne 0) { throw "WinGet không cài được $PackageId (mã $LASTEXITCODE). Xem thông báo phía trên rồi chạy lại." }
+    $code = Invoke-Native {
+        & winget.exe install --id $PackageId --exact --source winget --accept-package-agreements --accept-source-agreements --disable-interactivity | Out-Host
+    }
+    # 0x8A15002B: đã cài bản mới nhất. 0x8A150061: gói đã cài. Không phải lỗi;
+    # bước kiểm tra cuối mới quyết định công cụ có dùng được hay không.
+    if ($code -ne 0 -and $code -ne -1978335189 -and $code -ne -1978335135) {
+        throw "WinGet không cài được $PackageId (mã $code). Xem thông báo phía trên rồi chạy lại."
+    }
     Refresh-ToolPath
 }
 
@@ -60,8 +79,8 @@ function Save-ToolPath {
 
 function Has-BashTool([string]$Name) {
     # Chỉ nhận tên cố định từ danh sách bên dưới, không nhận lệnh từ người dùng.
-    & $script:gitBash --noprofile --norc -c "command -v $Name >/dev/null 2>&1"
-    return ($LASTEXITCODE -eq 0)
+    $code = Invoke-Native { & $script:gitBash --noprofile --norc -c "command -v $Name >/dev/null 2>&1" | Out-Null }
+    return ($code -eq 0)
 }
 
 try {
@@ -103,6 +122,10 @@ try {
         }
     }
     if (-not $Check) { Save-ToolPath }
+    # 'bash' trần trong PowerShell/cmd thường trỏ vào C:\Windows\System32\bash.exe
+    # (trình khởi chạy WSL) vì System32 đứng trước PATH người dùng. Chạy script
+    # plugin phải dùng đúng đường dẫn Git Bash này.
+    Write-Host "GIT BASH: $($script:gitBash)"
     Write-Host 'ĐÃ SẴN SÀNG. Đóng và mở lại Codex/Claude Code để nhận công cụ mới.'
     exit 0
 } catch {
