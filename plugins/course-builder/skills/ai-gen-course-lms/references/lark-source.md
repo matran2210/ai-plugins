@@ -488,6 +488,16 @@ Hai nhóm đáp án đều theo luật lồng lai của tài liệu này:
 - **có chữ ngay sau dấu hai chấm** → đó là **một** đáp án (`Đáp án đúng: Là quá trình…`);
 - **trống sau dấu hai chấm, có `children`** → **mỗi block con là một đáp án** (dùng khi có nhiều đáp án đúng, hoặc liệt kê nhiều đáp án nhiễu).
 
+**Riêng `Đáp án nhiễu:` còn nhận cách viết gộp ngăn bằng dấu chấm phẩy `;`** — cả khi viết ngay sau dấu hai chấm lẫn trong từng block con. Tách theo `;`, cắt khoảng trắng hai đầu, bỏ mảnh rỗng; mỗi mảnh là một đáp án nhiễu, giữ đúng thứ tự viết. Áp dụng cho mọi chỗ có `Đáp án nhiễu:` — phẳng ở cấp câu hỏi lẫn bên trong `Ô trống <k>:`.
+
+| Tài liệu viết | Đáp án nhiễu |
+|---|---|
+| `Đáp án nhiễu: Lượt xem giảm mạnh; Giá trị đơn giảm` | `Lượt xem giảm mạnh`, `Giá trị đơn giảm` |
+| `Đáp án nhiễu:` + hai block con `A. Lượt xem giảm` · `B. Giá đơn giảm` | `Lượt xem giảm`, `Giá đơn giảm` |
+| `Đáp án nhiễu:` + block con `tỷ lệ hoàn đơn; tỷ lệ nhấp quảng cáo` | `tỷ lệ hoàn đơn`, `tỷ lệ nhấp quảng cáo` |
+
+`Đáp án đúng:` **không** tách theo `;` — chữ sau dấu hai chấm vẫn là một đáp án, vì đáp án đúng hay là một câu dài có dấu chấm phẩy bên trong.
+
 Bỏ tiền tố đánh số nếu tài liệu có (`A. `, `B. `, `1. `) — nó là cách trình bày, không thuộc nội dung đáp án. Tài liệu mẫu viết `A. Sau khi Tactics Plan được duyệt.` thì đáp án là `Sau khi Tactics Plan được duyệt.`
 
 `answer_position` đánh **từ 1 theo đúng thứ tự tài liệu viết**: hết nhóm `Đáp án đúng:` rồi tới `Đáp án nhiễu:`. Không xáo, không sắp lại.
