@@ -13,7 +13,8 @@
 # Hạn token do realm Keycloak quyết định; đoán nó ở phía client là đoán sai.
 #
 # Hộp thoại: macOS dùng AppleScript, Windows dùng PowerShell (chạy trong Git Bash
-# hoặc WSL), môi trường không có GUI thì nhập ẩn ký tự ngay tại terminal.
+# hoặc WSL) cho cả panel chọn môi trường lẫn ô đăng nhập, môi trường không có
+# GUI thì nhập ẩn ký tự ngay tại terminal.
 #
 # `--gui` là chế độ DUY NHẤT Claude được phép gọi. Nó an toàn vì mật
 # khẩu đi từ cửa sổ đồ hoạ thẳng vào tiến trình này, không qua stdin và không bao
@@ -83,7 +84,9 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 RESP_FILE="${TMPDIR:-/tmp}/upbase-login.$$"
 PS_FILE="${TMPDIR:-/tmp}/upbase-login.$$.ps1"
-trap 'rm -f "$RESP_FILE" "$PS_FILE" "${API_BODY_FILE:-}"' EXIT
+PS_PICK_FILE="${TMPDIR:-/tmp}/upbase-login-env.$$.ps1"
+PS_ERR_FILE="${TMPDIR:-/tmp}/upbase-login.$$.err"
+trap 'rm -f "$RESP_FILE" "$PS_FILE" "$PS_PICK_FILE" "$PS_ERR_FILE" "${API_BODY_FILE:-}"' EXIT
 
 GUI_ONLY=0
 USERNAME=""
@@ -187,6 +190,21 @@ return "staging"
 AS
 }
 
+# Chọn môi trường qua terminal — chỉ khi người dùng tự chạy, không có GUI.
+tty_pick_env() {
+  local pick
+  [ -t 0 ] || die "không chọn được môi trường: không có hộp thoại và cũng không
+có terminal tương tác. Truyền thẳng --env staging hoặc --env prod."
+  printf 'Chọn môi trường OPS:\n  1) Staging  (%s)\n  2) Production  (%s)\nSố [1]: ' \
+    "$UPBASE_BASE_URL_STAGING" "$UPBASE_BASE_URL_PROD" >&2
+  IFS= read -r pick || die "đã hủy"
+  case "${pick:-1}" in
+    1) use_env staging ;;
+    2) use_env prod ;;
+    *) die "chọn 1 hoặc 2" ;;
+  esac
+}
+
 mac_ask() {
   local title="OPS ${ENV_LABEL}"
   if [ "$2" = 1 ]; then
@@ -206,22 +224,117 @@ AS
   fi
 }
 
+# run_ps <file.ps1> — chạy file PowerShell, stdout vào $PS_OUT.
+# stderr KHÔNG vứt đi mà giữ ở $PS_ERR_FILE: PowerShell chết trước khi in gì
+# (Get-Credential không mở được hộp thoại, ExecutionPolicy bị GPO khóa…) thì
+# đó là chỗ duy nhất còn nguyên nhân thật. Không chứa mật khẩu — mật khẩu chỉ
+# nằm trong biến của script PowerShell, không bao giờ được in ra.
+run_ps() {
+  local winpath="$1"
+  if command -v cygpath >/dev/null 2>&1; then
+    winpath=$(cygpath -w "$1")
+  elif command -v wslpath >/dev/null 2>&1; then
+    winpath=$(wslpath -w "$1")
+  fi
+  : > "$PS_ERR_FILE"
+  PS_OUT=$(powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$winpath" 2>"$PS_ERR_FILE" \
+           | tr -d '\r') || PS_OUT=""
+}
+
+# die_ps <thông báo> — dừng, kèm lỗi thật PowerShell in ra stderr.
+die_ps() {
+  local err
+  err=$(tr -d '\r' < "$PS_ERR_FILE" 2>/dev/null | grep -v '^[[:space:]]*$' | head -n 8 \
+        | sed 's/^/  PowerShell: /')
+  die "$1
+${err:-  PowerShell: (không in lỗi nào)}
+  Codex trên Windows: chạy lại 'login.sh --gui' NGOÀI sandbox (xin quyền escalated).
+  Vẫn lỗi thì người dùng tự mở Git Bash và chạy: scripts/login.sh"
+}
+
+# Đầu mọi file .ps1 sinh ra: BOM để PowerShell 5.1 đọc UTF-8, stdout UTF-8 để
+# lỗi tiếng Việt không thành '?', tắt progress để Invoke-WebRequest không xả
+# CLIXML ra stderr.
+ps_prelude() {
+  printf '\xef\xbb\xbf'
+  cat <<'PS'
+$ErrorActionPreference = 'Stop'
+$ProgressPreference = 'SilentlyContinue'
+try { [Console]::OutputEncoding = New-Object System.Text.UTF8Encoding $false } catch {}
+PS
+}
+
+# Panel chọn môi trường trên Windows — cùng vai trò mac_pick_env. In ra
+# staging | prod | CANCEL; rỗng nghĩa là không mở được hộp thoại.
+win_pick_env() {
+  {
+    ps_prelude
+    cat <<'PS'
+Add-Type -AssemblyName System.Windows.Forms
+Add-Type -AssemblyName System.Drawing
+[System.Windows.Forms.Application]::EnableVisualStyles()
+$f = New-Object System.Windows.Forms.Form
+$f.Text = 'UpBase OPS — chọn môi trường'
+$f.FormBorderStyle = 'FixedDialog'
+$f.StartPosition = 'CenterScreen'
+$f.MaximizeBox = $false
+$f.MinimizeBox = $false
+$f.TopMost = $true
+$f.ClientSize = New-Object System.Drawing.Size(360, 150)
+$l = New-Object System.Windows.Forms.Label
+$l.Text = 'Đăng nhập vào môi trường nào?'
+$l.AutoSize = $true
+$l.Location = New-Object System.Drawing.Point(16, 14)
+$lb = New-Object System.Windows.Forms.ListBox
+$lb.Location = New-Object System.Drawing.Point(16, 38)
+$lb.Size = New-Object System.Drawing.Size(328, 44)
+[void]$lb.Items.Add('OPS Staging')
+[void]$lb.Items.Add('OPS Production')
+$lb.SelectedIndex = 0
+$ok = New-Object System.Windows.Forms.Button
+$ok.Text = 'Tiếp tục'
+$ok.DialogResult = [System.Windows.Forms.DialogResult]::OK
+$ok.Location = New-Object System.Drawing.Point(178, 110)
+$cancel = New-Object System.Windows.Forms.Button
+$cancel.Text = 'Hủy'
+$cancel.DialogResult = [System.Windows.Forms.DialogResult]::Cancel
+$cancel.Location = New-Object System.Drawing.Point(264, 110)
+$f.AcceptButton = $ok
+$f.CancelButton = $cancel
+$f.Controls.AddRange(@($l, $lb, $ok, $cancel))
+$f.Add_Shown({ $f.Activate() })
+$r = $f.ShowDialog()
+if ($r -ne [System.Windows.Forms.DialogResult]::OK) { Write-Output 'CANCEL' }
+elseif ($lb.SelectedIndex -eq 1) { Write-Output 'prod' }
+else { Write-Output 'staging' }
+PS
+  } > "$PS_PICK_FILE" || die "không ghi được $PS_PICK_FILE"
+  run_ps "$PS_PICK_FILE"
+  PICKED=$(printf '%s\n' "$PS_OUT" | grep -E '^(staging|prod|CANCEL)$' | head -n1)
+}
+
 # PowerShell tự thu mật khẩu VÀ tự gọi API, chỉ trả lại response —
 # mật khẩu không bao giờ rời tiến trình PowerShell.
 win_login() {
-  local esc out u_line h_line winpath
+  local esc out u_line h_line
   esc=${USERNAME//\'/\'\'}
   {
-    printf '\xef\xbb\xbf'                       # BOM để PowerShell đọc UTF-8
+    ps_prelude
     printf "\$Url = '%s'\n" "$UPBASE_AUTH_URL"
     printf "\$ClientId = '%s'\n" "$UPBASE_AUTH_CLIENT_ID"
     printf "\$Pre = '%s'\n" "$esc"
     printf "\$EnvLabel = '%s'\n" "$ENV_LABEL"
     cat <<'PS'
-$ErrorActionPreference = 'Stop'
-if ($Pre) { $c = Get-Credential -UserName $Pre -Message ('OPS ' + $EnvLabel + ' — nhập mật khẩu') }
-else      { $c = Get-Credential -Message ('OPS ' + $EnvLabel + ' — nhập tên đăng nhập và mật khẩu') }
-if (-not $c) { Write-Output 'HTTP 000'; exit 0 }
+# Get-Credential phải nằm trong try: không mở được hộp thoại thì báo lý do ra
+# stderr thay vì chết câm.
+try {
+  if ($Pre) { $c = Get-Credential -UserName $Pre -Message ('OPS ' + $EnvLabel + ' — nhập mật khẩu') }
+  else      { $c = Get-Credential -Message ('OPS ' + $EnvLabel + ' — nhập tên đăng nhập và mật khẩu') }
+} catch {
+  [Console]::Error.WriteLine('Get-Credential: ' + $_.Exception.Message)
+  exit 2
+}
+if (-not $c) { Write-Output 'CANCEL'; exit 0 }
 # Hashtable + ContentType form-urlencoded: Invoke-WebRequest tự percent-encode,
 # nên mật khẩu có & hoặc = vẫn sang đúng trường.
 $b = @{
@@ -246,16 +359,10 @@ try {
 PS
   } > "$PS_FILE" || die "không ghi được $PS_FILE"
 
-  winpath="$PS_FILE"
-  if command -v cygpath >/dev/null 2>&1; then
-    winpath=$(cygpath -w "$PS_FILE")
-  elif command -v wslpath >/dev/null 2>&1; then
-    winpath=$(wslpath -w "$PS_FILE")
-  fi
-
-  out=$(powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$winpath" 2>/dev/null \
-        | tr -d '\r') || out=""
-  [ -n "$out" ] || die "không chạy được PowerShell (trên Windows hãy dùng Git Bash hoặc WSL)"
+  run_ps "$PS_FILE"
+  out="$PS_OUT"
+  [ "$out" != "CANCEL" ] || die "đã hủy"
+  [ -n "$out" ] || die_ps "không mở được hộp thoại đăng nhập PowerShell"
 
   u_line=$(printf '%s\n' "$out" | sed -n 's/^USER //p' | head -n1)
   h_line=$(printf '%s\n' "$out" | sed -n 's/^HTTP //p' | head -n1)
@@ -281,23 +388,28 @@ if [ -z "$ENVARG" ]; then
       [ -n "$picked" ] || die "chưa chọn môi trường"
       use_env "$picked"
       ;;
+    windows)
+      # Panel đồ hoạ trước, để Codex/Claude gọi --gui không cần terminal.
+      # Không mở được hộp thoại mà đang có terminal (người dùng tự chạy) thì
+      # hỏi ở terminal; --gui hoặc không có terminal thì dừng kèm lỗi thật.
+      win_pick_env
+      case "$PICKED" in
+        staging|prod) use_env "$PICKED" ;;
+        CANCEL) die "đã hủy" ;;
+        *)
+          { [ "$GUI_ONLY" = 0 ] && [ -t 0 ]; } \
+            || die_ps "không mở được hộp thoại chọn môi trường"
+          info "  ! không mở được hộp thoại chọn môi trường — hỏi ở terminal"
+          tty_pick_env
+          ;;
+      esac
+      ;;
     *)
-      # Windows và tty đều hỏi qua terminal: PowerShell chỉ mở hộp thoại cho
-      # phần mật khẩu, không có picker riêng.
-      if [ "$GUI_ONLY" = 1 ] && [ "$PLATFORM" = tty ]; then
+      if [ "$GUI_ONLY" = 1 ]; then
         die "máy này không có hộp thoại đồ hoạ, mà --gui thì cấm nhập qua terminal.
 Người dùng hãy tự mở terminal và chạy: scripts/login.sh"
       fi
-      [ -t 0 ] || die "không chọn được môi trường: không có hộp thoại và cũng không
-có terminal tương tác. Truyền thẳng --env staging hoặc --env prod."
-      printf 'Chọn môi trường OPS:\n  1) Staging  (%s)\n  2) Production  (%s)\nSố [1]: ' \
-        "$UPBASE_BASE_URL_STAGING" "$UPBASE_BASE_URL_PROD" >&2
-      IFS= read -r pick || die "đã hủy"
-      case "${pick:-1}" in
-        1) use_env staging ;;
-        2) use_env prod ;;
-        *) die "chọn 1 hoặc 2" ;;
-      esac
+      tty_pick_env
       ;;
   esac
 fi

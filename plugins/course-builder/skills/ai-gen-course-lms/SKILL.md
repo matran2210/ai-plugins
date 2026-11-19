@@ -187,11 +187,16 @@ scripts/login.sh --gui
 
 Hộp thoại hỏi **môi trường trước**, rồi mới tới tài khoản.
 
+> 🪟 **Windows (nhất là Codex):** hộp thoại là cửa sổ PowerShell, mà tiến trình chạy trong sandbox của agent không mở được cửa sổ lên màn hình người dùng. Nên:
+> - Gọi `login.sh --gui` **ngoài sandbox ngay từ lần đầu**: xin quyền escalated, người dùng duyệt. Đừng chạy thử trong sandbox trước.
+> - Đang ở PowerShell/cmd thì gọi qua đúng đường dẫn Git Bash, xem skill `setup-course-builder` bước 6. Không gọi `bash` trần.
+> - **Không tự mở console hay terminal mới** (`start`, `cmd /c start`, `mintty`…) để chạy `login.sh` thay người dùng. Cửa sổ đó vẫn kế thừa sandbox nên vẫn lỗi.
+
 | Kết quả | Làm gì |
 |---|---|
 | `=== ĐÃ ĐĂNG NHẬP (<env>) ===` | sang bước 5, và **báo người dùng đang ở môi trường nào** |
 | `đã hủy` | báo lại, **kết thúc lượt**, đừng mở lại hộp thoại |
-| dừng vì máy không có GUI | nhắc người dùng tự chạy `scripts/login.sh` ở terminal của họ, kết thúc lượt và chờ |
+| dừng vì máy không có GUI, hoặc `không mở được hộp thoại …` kèm dòng `PowerShell: …` | báo nguyên các dòng `PowerShell:` cho người dùng, nhắc họ tự mở Git Bash chạy `scripts/login.sh`, kết thúc lượt và chờ |
 
 ### Hai môi trường OPS
 
