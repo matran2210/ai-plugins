@@ -60,7 +60,7 @@ Ba hệ quả bắt buộc nhớ:
 
 ### Tên Section / Activity / bài test lấy từ nhãn `Name:`
 
-Heading `Section <n>`, `Activity <n>`, `Section Test`, `Midterm Test`, `Final Test` **chỉ khai loại node và số thứ tự**. Tên thật nằm ở nhãn `Name:` bên dưới heading đó, **không viết sau dấu hai chấm của heading**:
+Heading `Section <n>`, `Activity <n>`, `Section Test`, `Mid Test` (hoặc `Midterm Test`), `Final Test` **chỉ khai loại node và số thứ tự**. Tên thật nằm ở nhãn `Name:` bên dưới heading đó, **không viết sau dấu hai chấm của heading**:
 
 ```text
 Section 1                                     ← heading: loại node + số thứ tự
@@ -133,7 +133,7 @@ Tài liệu có thêm vùng khác (bảng tổng quan `sheet` nhúng, cây ASCII
 | `Name:` | `name` của `POST /courses` | **không phải tiêu đề tài liệu** |
 | `Description:` | `description` của `POST /courses` | mỗi đoạn một `<p>…</p>` |
 | `Course Category:` | `course_category_id` | **search theo tên**: `GET /course_categories?name=<giá trị>`; khớp 0 hoặc >1 đều **dừng**, xem ngay dưới |
-| `Type:` | `course_type` | trống → mặc định `$COURSE_TYPE` |
+| `Type:` | `course_type` | `Normal Course` → `NORMAL_COURSE` · `Foundation Course` → `FOUNDATION_COURSE`. **Chép nguyên văn vào `--type`**, `create-course.sh` tự quy đổi; giá trị khác thì script dừng. Trống → mặc định `$COURSE_TYPE` |
 | `Passpoint:` | `pass_point` | số nguyên; trống → mặc định `$COURSE_PASS_POINT` |
 | `Điểm thành phần:` | `setting` | bốn dòng con, xem ngay dưới |
 
@@ -182,7 +182,7 @@ Duyệt tuần tự, mỗi block rơi vào đúng một ô:
 | Thấy | Làm |
 |---|---|
 | `heading2` `Section <n>` | mở Section mới. `section.n` = số trong nhãn; `name` lấy từ nhãn `Name:` bên dưới |
-| `heading2` `Midterm Test` / `Final Test` | **không phải Section** — bài test cấp khóa; tên lấy từ nhãn `Name:` bên dưới |
+| `heading2` `Mid Test` (hoặc `Midterm Test`) / `Final Test` | **không phải Section** — bài test cấp khóa; tên lấy từ nhãn `Name:` bên dưới |
 | `heading3` `Activity <n>` | mở Activity mới thuộc Section đang mở; `name` lấy từ nhãn `Name:` bên dưới |
 | `heading3` `Section Test` | Section Test của Section đang mở; tên lấy từ nhãn `Name:` bên dưới |
 | nhãn khi **chưa mở Activity nào** | metadata của Section đang mở — xem *Cấp Section* |
@@ -394,7 +394,7 @@ Gặp nhãn không có trong các bảng trên: ghi tên nhãn + `block_id` vào
 |---|---|---|
 | Quiz của Activity | nhãn `Quiz:` **bên trong một `Tab <n>:`** | Document `QUIZ` trong chính Tab đó |
 | Section Test | `heading3` `Section Test:` **dưới một Section** | `SECTION_TEST` của Section đó |
-| Midterm | `heading2` `Midterm Test` | `MID_TERM_TEST` |
+| Midterm | `heading2` `Mid Test` — tài liệu cũ viết `Midterm Test` cũng nhận | `MID_TERM_TEST` |
 | Final Test | `heading2` `Final Test` | `FINAL_TEST` |
 
 Tên bài lấy ở nhãn **`Name:`** ngay dưới heading — heading chỉ là dấu hiệu. Không có `Name:` thì đặt mặc định theo loại và vị trí (`Section Test {n} - {tên Section}`), và ghi một dòng vào *Sai lệch*.
@@ -422,7 +422,7 @@ Khớp giá trị **bỏ hoa thường, khoảng trắng, dấu `/` và `-`**. G
 
 Mỗi câu là một heading (`heading4` hoặc `heading5` — tài liệu dùng cả hai) dạng `Câu <n>. <đề bài>` — **dấu chấm, không phải dấu hai chấm**. Đề bài là phần sau dấu chấm; số `<n>` chỉ để đánh thứ tự và làm state key.
 
-**Ảnh của đề bài:** block `image` (hoặc `view` → `image`) nằm giữa heading `Câu <n>.` và nhãn đầu tiên của câu (`Đáp án đúng:`, `Cặp ghép:`, `Ô trống <k>:`…) là ảnh minh họa đề bài. Không có nhãn bọc riêng — vị trí đó là đủ. Tải về theo tên `q-<test>-c<NN>-img<NN>`, upload bằng `--folder-type QUESTION`, khai vào `images[]` của câu đó theo đúng thứ tự block. Ảnh nằm **sau** nhãn đầu tiên của câu (lẫn giữa các đáp án) thì không gắn — ghi *Sai lệch*.
+**Ảnh của đề bài:** block `image` (hoặc `view` → `image`) nằm giữa heading `Câu <n>.` và nhãn đầu tiên của câu (`Đáp án đúng:`, `Cặp ghép:`, `Ô trống [k]:`…) là ảnh minh họa đề bài. Không có nhãn bọc riêng — vị trí đó là đủ. Tải về theo tên `q-<test>-c<NN>-img<NN>`, upload bằng `--folder-type QUESTION`, khai vào `images[]` của câu đó theo đúng thứ tự block. Ảnh nằm **sau** nhãn đầu tiên của câu (lẫn giữa các đáp án) thì không gắn — ghi *Sai lệch*.
 
 ```text
 heading5  Câu 1. Theo bài học, vai trò quan trọng nhất của Booking…
@@ -436,12 +436,14 @@ Bên dưới mỗi `Câu <n>.` là các nhãn của chính câu đó, tới `Câ
 | Nhãn | Nghĩa |
 |---|---|
 | `Question Type:` | bảy loại — bảng ngay dưới. **Chép nguyên văn vào `qtype`**, script tự quy đổi |
-| `Question Layout:` | `One column` → `HORIZONTAL` · `Two column` → `VERTICAL` — **chép nguyên văn vào `layout` của plan, script tự quy đổi** |
+| `Question Layout:` | `One column` → `HORIZONTAL` · `Two columns` (hoặc `Two column`) → `VERTICAL` — **chép nguyên văn vào `layout` của plan, script tự quy đổi** |
 | `Đáp án đúng:` | đáp án **đúng** — `is_correct: true` |
 | `Đáp án nhiễu:` | các đáp án **sai** — `is_correct: false`. Dùng cho **cả** True / False |
-| `Cặp ghép:` | **chỉ `Matching`** — mỗi block con là một cặp `vế trái → vế phải` |
-| `Ô trống <k>:` | **chỉ `Select Word` / `Fill Word` / `Drag & Drop`** — nhãn nhóm của ô trống số `k`, bên trong lại là `Đáp án đúng:` / `Đáp án nhiễu:` |
+| `Cặp ghép` | **chỉ `Matching`** — mỗi block con là một cặp `vế trái - vế phải`, xem *Cặp ghép* |
+| `Ô trống [k]:` | **chỉ `Select Word` / `Fill Word` / `Drag & Drop`** — nhãn nhóm của ô trống số `k`; bên trong khác nhau theo loại, xem *Ô trống* |
 | `Giải thích:` | **tùy chọn, mọi loại** — lời giải hiện sau khi học viên nộp bài → `solution`, bọc `<p>…</p>` |
+
+**Dấu `:` sau nhãn câu hỏi là tùy chọn.** Template viết `Cặp ghép`, `Đáp án đúng`, `Đáp án nhiễu` không có dấu hai chấm khi nhãn đứng một mình làm nhãn nhóm. Nhận diện nhãn bằng **chữ ở đầu block** (bỏ hoa thường), không bằng dấu `:`. Phần chữ còn lại sau nhãn (bỏ `:` nếu có) là giá trị inline. Số ô viết `Ô trống [1]` hay `Ô trống 1` đều là ô số 1.
 
 ### `Question Type:` — bảy nhãn
 
@@ -450,18 +452,44 @@ Bên dưới mỗi `Câu <n>.` là các nhãn của chính câu đó, tới `Câ
 | `One Choice` | `ONE_CHOICE` | `Đáp án đúng:` + `Đáp án nhiễu:` phẳng |
 | `Multiple Choice` | `MULTIPLE_CHOICE` | `Đáp án đúng:` + `Đáp án nhiễu:` phẳng |
 | `True / False` | `TRUE_FALSE` | `Đáp án đúng:` + `Đáp án nhiễu:` phẳng |
-| `Matching` | `MATCHING` | `Cặp ghép:` |
-| `Select Word` | `SELECT_WORD` | `Ô trống <k>:` → đúng + nhiễu **trong từng ô** |
-| `Fill Word` | `FILL_WORD` | `Ô trống <k>:` → **chỉ** đáp án đúng |
-| `Drag & Drop` | `DRAG_DROP` | `Ô trống <k>:` → 1 đúng mỗi ô, + `Đáp án nhiễu:` **phẳng ở cấp câu hỏi** |
+| `Matching` | `MATCHING` | `Cặp ghép` |
+| `Select Word` | `SELECT_WORD` | `Ô trống [k]:` → `Đáp án đúng` + `Đáp án nhiễu` **trong từng ô** |
+| `Fill Word` | `FILL_WORD` | `Ô trống [k]:` → các đáp án đúng là **block con, không nhãn** |
+| `Drag & Drop` | `DRAG_DROP` | `Ô trống [k]: <đáp án>` → 1 đúng mỗi ô, viết **ngay sau dấu hai chấm**; + `Đáp án nhiễu` **phẳng ở cấp câu hỏi** |
 
 Khớp nhãn **bỏ hoa thường và ký tự không phải chữ cái**, nên `Drag & Drop` và `DRAG_DROP` cùng về một mối. Nhưng plan vẫn **chép nguyên văn cột trái** để đối chiếu được bằng mắt.
 
 > 🚫 **Nhãn nào dùng với loại nào là ràng buộc cứng.** `Đáp án nhiễu:` trong một câu `Matching` hay `Fill Word`, hay `Cặp ghép:` trong một câu `One Choice`, đều là **tài liệu viết sai** — ghi *Sai lệch* và hỏi người dùng, đừng tự diễn giải. `create-question.sh` cũng dừng ở đó.
 
-### Ô trống — nhãn `Ô trống <k>:`
+### Ô trống — nhãn `Ô trống [k]:`
 
-Tài liệu đánh ô trống trong đề bài là `[1]`, `[2]`, `[3]`…, liên tục từ 1, mỗi số đúng một lần. Mỗi ô có một nhãn `Ô trống <k>:` riêng bên dưới.
+Tài liệu đánh ô trống trong đề bài là `[1]`, `[2]`, `[3]`…, liên tục từ 1, mỗi số đúng một lần. Mỗi ô có một nhãn `Ô trống [k]:` riêng bên dưới — có ngoặc vuông như template, hoặc `Ô trống k:` không ngoặc, đều nhận.
+
+Đọc đáp án đúng của từng ô theo đúng cách template viết cho mỗi loại:
+
+| Loại | Template viết | Đáp án đúng của ô | Đáp án nhiễu |
+|---|---|---|---|
+| `Select Word` | `Ô trống [1]:` → block con `Đáp án đúng` · `Đáp án nhiễu` | theo nhãn `Đáp án đúng` trong ô | theo nhãn `Đáp án nhiễu` trong ô |
+| `Fill Word` | `Ô trống [1]:` → block con `apple` · `Apple` | **mỗi block con là một cách viết được chấp nhận**, không có nhãn | không có |
+| `Drag & Drop` | `Ô trống [1]: apple` | **chữ ngay sau dấu hai chấm**, đúng một đáp án | nhãn `Đáp án nhiễu` phẳng ở cấp câu, block con là từng đáp án |
+
+Tài liệu cũ bọc đáp án trong nhãn `Đáp án đúng:` bên trong ô (với `Fill Word`, `Drag & Drop`) vẫn đọc được: bỏ nhãn, lấy giá trị. `Select Word` thì **bắt buộc** có nhãn, vì phải tách đúng khỏi nhiễu — ô có block con không nhãn trong câu `Select Word` là tài liệu viết sai, ghi *Sai lệch*.
+
+```text
+heading5  Câu 4. Nội dung câu hỏi [1] [2]?        ← Fill Word
+bullet    Ô trống [1]:
+  bullet    apple                                  → ô 1 nhận "apple"
+  bullet    Apple                                  →      hoặc "Apple"
+bullet    Ô trống [2]:
+  bullet    banana                                 → ô 2 nhận "banana"
+
+heading5  Câu 5. Nội dung câu hỏi [1] [2]?        ← Drag & Drop
+bullet    Ô trống [1]: apple                       → ô 1 đúng "apple"
+bullet    Ô trống [2]: banana                      → ô 2 đúng "banana"
+bullet    Đáp án nhiễu
+  bullet    cherry                                 → rổ nhiễu dùng chung
+  bullet    grape
+```
 
 Soạn plan: **mỗi `[k]` thành một `{{blank}}`** trong `content` theo đúng thứ tự, và một phần tử `blanks[]`. Số lượng phải khớp — không khớp là script dừng.
 
@@ -471,13 +499,17 @@ Ba loại ô trống khác nhau ở chỗ **`Đáp án nhiễu:` nằm đâu** �
 
 | Loại | `Đáp án nhiễu:` | Mỗi ô mấy đáp án đúng |
 |---|---|---|
-| `Select Word` | **trong** mỗi `Ô trống <k>:` | 1 hoặc nhiều |
+| `Select Word` | **trong** mỗi `Ô trống [k]:` | 1 hoặc nhiều |
 | `Fill Word` | **không có** | nhiều dòng = nhiều cách viết được chấp nhận |
 | `Drag & Drop` | **phẳng ở cấp câu hỏi**, rổ dùng chung | đúng 1 |
 
-### Cặp ghép — nhãn `Cặp ghép:`
+### Cặp ghép — nhãn `Cặp ghép`
 
-Mỗi block con là một cặp, hai vế ngăn nhau bằng `→` (tài liệu gõ `->` cũng nhận). Thành `matchings[]` với `{left, right}` theo đúng thứ tự.
+Mỗi block con là một cặp. Template viết hai vế ngăn bằng **dấu gạch có khoảng trắng hai bên**: `Vế trái - Vế phải` (bao nhiêu khoảng trắng cũng được). `→` và `->` cũng nhận. Thành `matchings[]` với `{left, right}` theo đúng thứ tự, cắt khoảng trắng hai đầu mỗi vế.
+
+- Gạch **không** có khoảng trắng hai bên (`E2E-Plan`, `B2B`) là chữ trong nội dung, không phải dấu ngăn.
+- Một dòng có từ hai dấu ngăn trở lên (`A - B - C`) thì không biết cắt ở đâu: ghi *Sai lệch*, hỏi người dùng, đừng tự chọn.
+- Không có dấu ngăn nào → không phải cặp: ghi *Sai lệch*.
 
 `Matching` **không có đáp án nhiễu** — mọi cặp đều đúng.
 
@@ -488,7 +520,7 @@ Hai nhóm đáp án đều theo luật lồng lai của tài liệu này:
 - **có chữ ngay sau dấu hai chấm** → đó là **một** đáp án (`Đáp án đúng: Là quá trình…`);
 - **trống sau dấu hai chấm, có `children`** → **mỗi block con là một đáp án** (dùng khi có nhiều đáp án đúng, hoặc liệt kê nhiều đáp án nhiễu).
 
-**Riêng `Đáp án nhiễu:` còn nhận cách viết gộp ngăn bằng dấu chấm phẩy `;`** — cả khi viết ngay sau dấu hai chấm lẫn trong từng block con. Tách theo `;`, cắt khoảng trắng hai đầu, bỏ mảnh rỗng; mỗi mảnh là một đáp án nhiễu, giữ đúng thứ tự viết. Áp dụng cho mọi chỗ có `Đáp án nhiễu:` — phẳng ở cấp câu hỏi lẫn bên trong `Ô trống <k>:`.
+**Riêng `Đáp án nhiễu:` còn nhận cách viết gộp ngăn bằng dấu chấm phẩy `;`** — cả khi viết ngay sau dấu hai chấm lẫn trong từng block con. Tách theo `;`, cắt khoảng trắng hai đầu, bỏ mảnh rỗng; mỗi mảnh là một đáp án nhiễu, giữ đúng thứ tự viết. Áp dụng cho mọi chỗ có `Đáp án nhiễu:` — phẳng ở cấp câu hỏi lẫn bên trong `Ô trống [k]:`.
 
 | Tài liệu viết | Đáp án nhiễu |
 |---|---|
@@ -525,7 +557,7 @@ Tài liệu không khai điểm riêng → **mọi câu nhận đúng cùng mộ
 
 Muốn điểm khác nhau thì khai `"grade"` cho **mọi** câu trong file 7.1 — chấp nhận số thập phân. Script chặn nếu tổng **vượt 100**, và cảnh báo nếu tổng thiếu (bài test không dùng hết điểm). Khai nửa vời — chỉ một số câu có `grade` — cũng bị chặn.
 
-> 🚫 **Đừng tự quy đổi `Question Layout:` khi soạn plan.** Cặp giá trị này **ngược với trực giác**: `One column` → `HORIZONTAL`, `Two column` → `VERTICAL`. Đã có lần chọn ngược. `create-question.sh` quy đổi ở một chỗ duy nhất, từ chối plan nào khai `display_type` hoặc ghi `VERTICAL`/`HORIZONTAL` vào `layout`.
+> 🚫 **Đừng tự quy đổi `Question Layout:` khi soạn plan.** Cặp giá trị này **ngược với trực giác**: `One column` → `HORIZONTAL`, `Two columns` → `VERTICAL`. Đã có lần chọn ngược. `create-question.sh` quy đổi ở một chỗ duy nhất, từ chối plan nào khai `display_type` hoặc ghi `VERTICAL`/`HORIZONTAL` vào `layout`.
 
 ### Số đáp án phải khớp `Question Type:`
 
@@ -539,7 +571,7 @@ Muốn điểm khác nhau thì khai `"grade"` cho **mọi** câu trong file 7.1 
 | `Fill Word` | mỗi ô **≥ 1 đúng**, không ô nào có nhiễu |
 | `Drag & Drop` | mỗi ô **đúng 1** đáp án, và **≥ 1** nhiễu chung ở cấp câu hỏi |
 
-Ba loại có ô trống còn một ràng buộc nữa: **số ô `[k]` trong đề bài phải bằng số nhãn `Ô trống <k>:`**.
+Ba loại có ô trống còn một ràng buộc nữa: **số ô `[k]` trong đề bài phải bằng số nhãn `Ô trống [k]:`**.
 
 Không khớp thì `create-question.sh` **dừng trước khi gọi API** — câu hỏi tạo sai không xóa được bằng bộ script này, người dùng phải vào giao diện dọn tay.
 

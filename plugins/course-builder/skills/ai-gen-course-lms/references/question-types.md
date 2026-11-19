@@ -56,7 +56,7 @@ Script tra `resource_id` trong manifest rồi nối vào sau đề bài. Thẻ g
 
 Script nhận cả hai cột (bỏ hoa thường và ký tự không phải chữ cái rồi mới khớp), nhưng plan **viết nguyên văn cột trái** — để đối chiếu với tài liệu được bằng mắt.
 
-> 🚫 **Không khai `display_type`** cho bất kỳ loại nào. `One column` → `HORIZONTAL`, `Two column` → `VERTICAL` là cặp **ngược với trực giác**; quy đổi làm ở một chỗ duy nhất trong script.
+> 🚫 **Không khai `display_type`** cho bất kỳ loại nào. `One column` → `HORIZONTAL`, `Two columns` → `VERTICAL` là cặp **ngược với trực giác**; quy đổi làm ở một chỗ duy nhất trong script.
 
 ## Ô trống — đọc trước khi soạn `Select Word` / `Fill Word` / `Drag & Drop`
 
@@ -115,7 +115,7 @@ Giữ nguyên như trước, không đổi gì.
 
 Loại duy nhất **không gửi `answers`**; server ép `answers = undefined` khi `qType = MATCHING`.
 
-Nhãn Lark: `Cặp ghép:` → mỗi block con là một cặp, hai vế ngăn bằng `→` (hoặc `->`).
+Nhãn Lark: `Cặp ghép` → mỗi block con là một cặp, hai vế ngăn bằng ` - ` (gạch có khoảng trắng hai bên, như template), hoặc `→` / `->`. Luật cắt: `lark-source.md` → *Cặp ghép*.
 
 ```json
 { "n": 4,
@@ -141,12 +141,12 @@ Script dựng `question_matchings: [{content: left, answer: {is_correct: true, a
 
 ## 3 · `Select Word` — chọn từ cho mỗi ô trống
 
-Nhãn Lark: `Ô trống <k>:` → bên trong là `Đáp án đúng:` và `Đáp án nhiễu:` **của riêng ô đó**.
+Nhãn Lark: `Ô trống [k]:` → bên trong là `Đáp án đúng` và `Đáp án nhiễu` **của riêng ô đó**.
 
 ```json
 { "n": 5,
   "qtype": "Select Word",
-  "layout": "Two column",
+  "layout": "Two columns",
   "content": "<p>doanh thu = lượt xem × {{blank}} × {{blank}}.</p>",
   "blanks": [
     { "correct": ["tỷ lệ chuyển đổi"],       "distractors": ["tỷ lệ hoàn đơn", "tỷ lệ nhấp quảng cáo"] },
@@ -164,6 +164,8 @@ Nhãn Lark: `Ô trống <k>:` → bên trong là `Đáp án đúng:` và `Đáp 
 ## 4 · `Fill Word` — học viên tự gõ
 
 Cùng cơ chế ô trống, **không có nhiễu**. Mỗi phần tử `correct` là một cách viết được chấp nhận cho ô đó.
+
+Nhãn Lark: `Ô trống [k]:` → mỗi **block con không nhãn** là một phần tử `correct` của ô đó.
 
 ```json
 { "n": 6,
@@ -183,6 +185,8 @@ Cùng cơ chế ô trống, **không có nhiễu**. Mỗi phần tử `correct` 
 ## 5 · `Drag & Drop` — kéo thả
 
 Mỗi ô **đúng một** đáp án; mảnh nhiễu là **rổ dùng chung**, nằm ở `.distractors` **cấp câu hỏi**.
+
+Nhãn Lark: `Ô trống [k]: <đáp án>` → chữ sau dấu hai chấm là `correct` duy nhất của ô; nhãn `Đáp án nhiễu` phẳng ở cấp câu → `.distractors`.
 
 ```json
 { "n": 7,

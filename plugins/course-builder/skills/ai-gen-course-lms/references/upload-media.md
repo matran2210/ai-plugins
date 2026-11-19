@@ -48,7 +48,7 @@ POST /courses
   "description": "<Description: → <p>…</p>>",
   "pass_point": "<Passpoint:>",
   "status": "DRAFT",
-  "course_type": "<Type:>",
+  "course_type": "<Type: Normal Course → NORMAL_COURSE · Foundation Course → FOUNDATION_COURSE>",
   "setting": { "progress": "<Tiến độ học:>", "activity_points": 0,
                "chapter_points": "<Section Test:>", "topic_points": 0,
                "mid_term_points": "<Mid Test:>", "final_test_points": "<Final Test:>" },

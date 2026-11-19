@@ -125,7 +125,7 @@ Không tải được file nào thì vẫn phải có dòng cho nó, ghi rõ `L�
 
 ## 5. Bài test và câu hỏi sẽ tạo
 
-Một khối `###` cho mỗi bài test tài liệu định nghĩa: `Quiz:` bên trong một `Tab <n>:`, hoặc heading `Section Test` / `Midterm Test` / `Final Test`. Tên bài lấy ở nhãn `Name:` dưới heading.
+Một khối `###` cho mỗi bài test tài liệu định nghĩa: `Quiz:` bên trong một `Tab <n>:`, hoặc heading `Section Test` / `Mid Test` (hoặc `Midterm Test`) / `Final Test`. Tên bài lấy ở nhãn `Name:` dưới heading.
 
 ```markdown
 ## 5. Bài test và câu hỏi sẽ tạo
@@ -142,9 +142,9 @@ Một khối `###` cho mỗi bài test tài liệu định nghĩa: `Quiz:` bên 
 |---|---|---|---|---|---|---|
 | 1 | Market Research được định nghĩa như thế nào trong tài liệu? | One Choice → `ONE_CHOICE` | One column → `HORIZONTAL` | 1 đúng / 3 nhiễu | **1** — Giới thiệu Market Research | Activity 1.1 · LO con 1 |
 | 2 | Market Research đứng ở đâu trong quy trình Planning? | Multiple Choice → `MULTIPLE_CHOICE` | One column → `HORIZONTAL` | 2 đúng / 2 nhiễu | **1** — Giới thiệu Market Research | Activity 1.2 |
-| 3 | Trong mô hình Market Research, cách phân chia Internal và External nào đúng? | True / False → `TRUE_FALSE` | Two column → `VERTICAL` | 1 đúng / 1 sai | **2** — Nguồn dữ liệu | Activity 2.1 · LO con 1 |
+| 3 | Trong mô hình Market Research, cách phân chia Internal và External nào đúng? | True / False → `TRUE_FALSE` | Two columns → `VERTICAL` | 1 đúng / 1 sai | **2** — Nguồn dữ liệu | Activity 2.1 · LO con 1 |
 | 4 | Ghép mỗi nguồn dữ liệu với nhóm Internal hay External | Matching → `MATCHING` | One column → `HORIZONTAL` | 4 cặp ghép | **2** — Nguồn dữ liệu | Activity 2.1 |
-| 5 | Điền vào công thức quy mô thị trường | Select Word → `SELECT_WORD` | Two column → `VERTICAL` | 2 ô trống · ô 1: 1 đúng/2 nhiễu · ô 2: 1 đúng/1 nhiễu | **3** — Đo quy mô thị trường | Activity 3.2 |
+| 5 | Điền vào công thức quy mô thị trường | Select Word → `SELECT_WORD` | Two columns → `VERTICAL` | 2 ô trống · ô 1: 1 đúng/2 nhiễu · ô 2: 1 đúng/1 nhiễu | **3** — Đo quy mô thị trường | Activity 3.2 |
 | 6 | Tỷ lệ thâm nhập thị trường mục tiêu là bao nhiêu phần trăm | Fill Word → `FILL_WORD` | One column → `HORIZONTAL` | 1 ô trống · 2 cách viết được chấp nhận | **3** — Đo quy mô thị trường | Activity 3.2 |
 | 7 | Sắp xếp đúng thứ tự bốn bước nghiên cứu thị trường | Drag & Drop → `DRAG_DROP` | One column → `HORIZONTAL` | 4 ô trống · 2 mảnh nhiễu chung | **chưa xác định** ⚠️ SL-18 | khớp cả Activity 1.2 và 3.1 |
 

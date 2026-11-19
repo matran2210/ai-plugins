@@ -243,6 +243,8 @@ scripts/course/start.sh --course <COURSE_ID vừa in ra>
 
 **Sáu giá trị lấy từ vùng *Thông tin khóa học*** theo luật `Nhãn: giá trị` — đúng những gì `outline.md` mục 2 đã ghi. Tài liệu khai gì thì gửi nấy; **đừng dùng mặc định trong `config.sh` khi tài liệu có khai**. Nhãn nào tài liệu bỏ trống thì bỏ cờ đó, script tự dùng fallback và in cảnh báo — và outline phải đã có một dòng *Sai lệch*.
 
+`--type` chép nguyên văn nhãn `Type:` (`Normal Course` / `Foundation Course`); script tự quy ra `NORMAL_COURSE` / `FOUNDATION_COURSE`.
+
 `--category` là **bắt buộc**. Script search theo tên (`GET /course_categories?name=…`) rồi thu hẹp bằng ba mức: khớp chính xác → tên category nằm trong giá trị tài liệu (dài nhất thắng) → giá trị tài liệu nằm trong tên category. Search rỗng thì lấy nguyên danh sách khớp lại.
 
 > 🚫 **Khớp 0 hoặc >1 đều làm script DỪNG, không bao giờ tự chọn phần tử đầu.** Khớp nhiều thì ghi một dòng vào *Sai lệch* của outline, in các tên khớp và **hỏi người dùng chọn**; họ sửa `Course Category:` thành tên đầy đủ rồi chạy lại.
@@ -397,7 +399,7 @@ Soạn **một file cho một bài test** tại `<course-slug>/work/questions-<t
     { "n": 3, "section": 2,
       "content": "<p>doanh thu = lượt xem × {{blank}} × {{blank}}.</p>",
       "qtype": "Select Word",
-      "layout": "Two column",
+      "layout": "Two columns",
       "blanks": [
         { "correct": ["tỷ lệ chuyển đổi"],       "distractors": ["tỷ lệ hoàn đơn"] },
         { "correct": ["giá trị đơn trung bình"], "distractors": ["chi phí quảng cáo"] }
@@ -418,11 +420,11 @@ scripts/course/create-question.sh <course-slug>/work/questions-final.json \
 - `section` — **chỉ có ở `final` / `mid`, và bắt buộc ở đó**: số Section chép nguyên từ cột *Section* ở mục 5 của `outline.md` **đã duyệt**. Không phân tích lại ở bước này. Script tra `SECTION_ID` từ state key `section:<section>` làm `chapter_id`. Bài `section:N` / `tab:N:A:T` **không** khai — script lấy N từ `test`, khai là script dừng.
 - `content` — đề bài **sau dấu chấm**, bọc `<p>…</p>`.
 - `qtype` — **chép nguyên văn nhãn `Question Type:`**, bảy loại: `One Choice` · `Multiple Choice` · `True / False` · `Matching` · `Select Word` · `Fill Word` · `Drag & Drop`. Script tự quy ra enum API.
-- `layout` — **chép nguyên văn nhãn `Question Layout:`**: `One column` hoặc `Two column`. Script tự quy ra `HORIZONTAL` / `VERTICAL`.
+- `layout` — **chép nguyên văn nhãn `Question Layout:`**: `One column` hoặc `Two columns`. Script tự quy ra `HORIZONTAL` / `VERTICAL`.
 - `solution` — **tùy chọn**, lấy từ nhãn `Giải thích:`, bọc `<p>…</p>`. Không có nhãn thì bỏ hẳn trường.
 - `images` — **tùy chọn**, mảng đường dẫn ảnh của đề bài (`"<course-slug>/assets/q-section01-c01-img01.png"`), đúng thứ tự tài liệu. Script tra `resource_id` trong `<course-slug>/work/media-manifest.json` (cạnh file câu hỏi; khác chỗ thì `--manifest`) và nối `<img src="PRESIGN_URL" … resource_id="…" width="836" height="428">` vào **sau** đề bài (kích thước lấy từ `QUESTION_IMAGE_WIDTH` / `QUESTION_IMAGE_HEIGHT` trong `scripts/config.sh`). Ảnh chưa upload, bị bỏ qua, hoặc không upload bằng `--folder-type QUESTION` → script **dừng**. Không gõ `<img>` tay vào `content` — script chặn.
 
-> 🚫 **Không khai `display_type`, và không ghi `VERTICAL`/`HORIZONTAL` vào `layout`.** Script từ chối cả hai. Cặp giá trị này **ngược với trực giác** (`One column` → `HORIZONTAL`, `Two column` → `VERTICAL`) nên tự quy đổi là chỗ dễ chọn sai nhất — để script làm.
+> 🚫 **Không khai `display_type`, và không ghi `VERTICAL`/`HORIZONTAL` vào `layout`.** Script từ chối cả hai. Cặp giá trị này **ngược với trực giác** (`One column` → `HORIZONTAL`, `Two columns` → `VERTICAL`) nên tự quy đổi là chỗ dễ chọn sai nhất — để script làm.
 
 **Phần đáp án khác nhau theo loại — ba hình dạng, khai nhầm là script dừng:**
 

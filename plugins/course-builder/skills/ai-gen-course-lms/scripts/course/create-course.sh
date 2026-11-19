@@ -67,6 +67,16 @@ fi
 [ -n "$PASSPOINT" ] || { warn_default "--pass-point" "$COURSE_PASS_POINT" "Passpoint:"; PASSPOINT="$COURSE_PASS_POINT"; }
 [ -n "$SETTING" ]   || { warn_default "--setting" "$COURSE_SETTING" "Điểm thành phần:"; SETTING="$COURSE_SETTING"; }
 
+# Template ghi nhãn hiển thị `Normal Course` / `Foundation Course`; API nhận hằng
+# NORMAL_COURSE / FOUNDATION_COURSE (đúng COURSE_TYPES của OPS). Khớp bỏ hoa
+# thường và ký tự không phải chữ cái, nên chép nguyên văn nhãn hay ghi thẳng hằng
+# đều ra cùng một giá trị. Ngoài hai loại đó thì dừng, không đoán.
+case "$(printf '%s' "$CTYPE" | tr '[:upper:]' '[:lower:]' | tr -cd 'a-z')" in
+  normalcourse)     CTYPE=NORMAL_COURSE ;;
+  foundationcourse) CTYPE=FOUNDATION_COURSE ;;
+  *) die "--type không nhận '$CTYPE'. Nhãn 'Type:' chỉ có: 'Normal Course' · 'Foundation Course'" ;;
+esac
+
 printf '%s' "$PASSPOINT" | grep -qE '^[0-9]+$' || die "--pass-point phải là số nguyên, nhận: $PASSPOINT"
 printf '%s' "$SETTING" | jq -e 'type == "object"' >/dev/null 2>&1 \
   || die "--setting phải là JSON object, nhận: $(printf '%s' "$SETTING" | head -c 120)"

@@ -122,7 +122,7 @@ Khác luồng tạo ở cách hiểu **số Section**. Số trong `Section <n>` 
 |---|---|---|
 | `Section <n>`, `n ≤ K` | Section **cũ** số `n` | **chỉ** `Section Test` (heading `Section Test` kèm câu hỏi). `Name:` nếu có thì phải khớp tên trên LMS |
 | `Section <n>`, `n > K` | Section **mới** | đủ như luồng tạo: `Name:`, LO, Activity, Tab, `Section Test` |
-| `Midterm Test` / `Final Test` | test cấp khóa mới | như luồng tạo |
+| `Mid Test` (hoặc `Midterm Test`) / `Final Test` | test cấp khóa mới | như luồng tạo |
 | vùng *Thông tin khóa học* | — | bỏ qua toàn bộ, ghi một dòng *Sai lệch* |
 
 Ghi *Sai lệch* với **"bạn quyết"** khi:

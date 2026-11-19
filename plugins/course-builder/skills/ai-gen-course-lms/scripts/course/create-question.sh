@@ -126,22 +126,22 @@ bad=$(jq -r "$JQ_LIB"'[ .questions[]
   'Matching'/MATCHING · 'Select Word'/SELECT_WORD · 'Fill Word'/FILL_WORD · 'Drag & Drop'/DRAG_DROP"
 
 # display_type KHÔNG được khai trực tiếp. Nhãn tài liệu là `One column` /
-# `Two column`, mà giá trị API là HORIZONTAL / VERTICAL — NGƯỢC với trực giác và
-# hai cặp từ chẳng giống
+# `Two columns` (template viết số nhiều; `Two column` cũng nhận), mà giá trị
+# API là HORIZONTAL / VERTICAL — NGƯỢC với trực giác và hai cặp từ chẳng giống
 # nhau, nên để bên soạn plan tự quy đổi là chỗ dễ chọn ngược nhất. Quy đổi làm ở
 # ĐÂY, plan chỉ được chép nguyên văn nhãn vào .layout.
 if jq -e '.questions // [] | any(has("display_type"))' "$QFILE" >/dev/null 2>&1; then
   die "plan khai .display_type — trường này script tự suy, không khai tay.
-  Chép nguyên văn nhãn 'Question Layout:' vào .layout: 'One column' hoặc 'Two column'."
+  Chép nguyên văn nhãn 'Question Layout:' vào .layout: 'One column' hoặc 'Two columns'."
 fi
 
 bad=$(jq -r '[ .questions[]
-  | (.layout // "" | ascii_downcase | gsub("[^a-z]";"")) as $l
+  | (.layout // "" | ascii_downcase | gsub("[^a-z]";"") | sub("columns$";"column")) as $l
   | select($l != "onecolumn" and $l != "twocolumn")
   | "câu \(.n): layout=\(.layout // "thiếu")" ] | join("; ")' "$QFILE")
 [ -z "$bad" ] || die "layout không hợp lệ: $bad
   Chỉ nhận nguyên văn nhãn 'Question Layout:' của tài liệu: 'One column' → HORIZONTAL,
-  'Two column' → VERTICAL. Đừng ghi VERTICAL/HORIZONTAL vào .layout."
+  'Two columns' (hoặc 'Two column') → VERTICAL. Đừng ghi VERTICAL/HORIZONTAL vào .layout."
 
 # Mỗi loại một hình dạng plan. Khai nhầm trường là dấu hiệu chọn nhầm loại —
 # chặn ở đây rẻ hơn nhiều so với đi dọn tay trên giao diện.
@@ -317,7 +317,7 @@ info "Bài test '$TEST' — $NQ câu hỏi"
 if [ "$DRY" -eq 1 ]; then
   jq -r --argjson m "$CHAP_MAP" --arg sec "${SEC:-}" "$JQ_LIB"'.questions[]
     | (qenum) as $e
-    | (.layout | ascii_downcase | gsub("[^a-z]";"")) as $l
+    | (.layout | ascii_downcase | gsub("[^a-z]";"") | sub("columns$";"column")) as $l
     | "  câu \(.n) [\($e) · \(.layout) → \(if $l == "onecolumn" then "HORIZONTAL" else "VERTICAL" end)]"
       + "  " + ( if $e == "MATCHING" then
                    "\((.matchings | length)) cặp ghép"
@@ -371,7 +371,7 @@ for ((i = 0; i < NQ; i++)); do
   payload=$(jq -c "$JQ_LIB"'
      .questions[$i] as $q
      | ($q | qt) as $t
-     | ($q.layout | ascii_downcase | gsub("[^a-z]";"")) as $l
+     | ($q.layout | ascii_downcase | gsub("[^a-z]";"") | sub("columns$";"column")) as $l
      | (($q.blanks // []) | length) as $nb
      | $cfg
        + {question_content: $content,
