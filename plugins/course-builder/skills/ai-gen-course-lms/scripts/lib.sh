@@ -124,14 +124,23 @@ trap 'rm -f "$API_BODY_FILE"' EXIT
 
 # api <METHOD> <PATH> [JSON] — set API_HTTP, body ghi ra api_body.
 # Gọi KHÔNG qua command substitution; subshell sẽ làm mất API_HTTP.
+#
+# Body JSON đi vào curl qua STDIN (--data-binary @-), KHÔNG qua argv. Trên
+# Windows (Git Bash/MSYS), argv bị chuyển qua code page ANSI khi gọi curl.exe
+# nên tiếng Việt UTF-8 vỡ font trên OPS. stdin giữ nguyên từng byte.
 api() {
   local method="$1" path="$2" body="${3:-}"
   local -a args=(-sS -o "$API_BODY_FILE" -w '%{http_code}'
                  -X "$method" "${UPBASE_BASE_URL}${path}"
                  -H "Authorization: Bearer ${TOKEN}"
                  -H "Accept: application/json")
-  [ -n "$body" ] && args+=(-H "Content-Type: application/json" --data "$body")
-  API_HTTP=$(curl "${args[@]}") || { API_HTTP="000"; : > "$API_BODY_FILE"; }
+  if [ -n "$body" ]; then
+    args+=(-H "Content-Type: application/json; charset=utf-8" --data-binary @-)
+    API_HTTP=$(printf '%s' "$body" | curl "${args[@]}") \
+      || { API_HTTP="000"; : > "$API_BODY_FILE"; }
+  else
+    API_HTTP=$(curl "${args[@]}") || { API_HTTP="000"; : > "$API_BODY_FILE"; }
+  fi
 }
 
 # api_form <METHOD> <PATH> <field> [field …] — gửi multipart/form-data.
